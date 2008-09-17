@@ -1,7 +1,7 @@
 <?php
 
-require_once(dirname(__FILE__) .'/../lib/blog.class.php');
-require_once(dirname(__FILE__) .'/../lib/blogList.class.php');
+require_once(dirname(__FILE__) .'/../lib/cs-blogger/blog.class.php');
+require_once(dirname(__FILE__) .'/../lib/cs-blogger/blogList.class.php');
 $page->rip_all_block_rows();
 
 //they're just viewing the /blog page; show list of member's blogs.
