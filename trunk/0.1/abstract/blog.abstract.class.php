@@ -142,7 +142,7 @@ abstract class blogAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	public function get_age_hype($timestamp) {
+	public function get_age_hype($timestamp, $addBrackets=FALSE) {
 		$age = time() - $timestamp;
 		switch($age) {
 			case ($age <= 1800): {
@@ -195,7 +195,7 @@ abstract class blogAbstract {
 			}
 		}
 		
-		if(strlen($extraText)) {
+		if(strlen($extraText) && $addBrackets) {
 			$extraText = '['. $extraText .']';
 		}
 		
