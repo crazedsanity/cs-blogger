@@ -95,34 +95,7 @@ class blog extends blogAbstract {
 			$limit = 5;
 		}
 		
-		$sql = "SELECT be.*, b.blog_name, a.username FROM cs_blog_entry_table AS be INNER JOIN " .
-				"cs_blog_table AS b ON (b.blog_id=be.blog_id) INNER JOIN cs_authentication_table " .
-				"AS a ON (b.uid=a.uid) WHERE be.blog_id=". $this->blogId .
-				" ORDER BY post_timestamp DESC LIMIT ". $limit;
-		$numrows = $this->run_sql($sql);
-		
-		if($numrows <= $limit) {
-			$data = $this->dbObj->farray_fieldnames('be.blog_entry_id',1);
-			
-			$retval = array();
-			
-			//fix indexes so they don't contain the table prefixes.
-			foreach($data as $index=>$value) {
-				$value = $this->fix_db_array_indexes($value);
-				$value['age_hype'] = $this->get_age_hype($value['post_timestamp']);
-				$value['display_name'] = ucwords($value['blog_name']);
-				$value['date_short'] = strftime('%Y/%m/%d', $value['post_timestamp']);
-				$value['permalink'] = $this->get_permalink_from_filename($value['filename']);
-				$value['formatted_username'] = ucwords($value['username']);
-				$value['formatted_post_timestamp'] = strftime('%A, %B %d, %Y %I:%M %p', $value['post_timestamp']);
-				$value['formatted_post_timestamp_time'] = strftime('%I:%M %p', $value['post_timestamp']);
-				$value['contents'] = $this->fsObj->read($value['filename']);
-				$retval[$index] = $value;
-			}
-		}
-		else {
-			throw new exception(__METHOD__ .": failed to retrieve data (". $numrows .")");
-		}
+		//TODO: read index of most recent entries for this blog.
 		
 		return($retval);
 	}//end get_recent_blogs()
