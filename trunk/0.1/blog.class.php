@@ -21,8 +21,19 @@ class blog extends blogAbstract {
 	public function __construct($blogName=NULL) {
 		parent::__construct($blogName);
 		$data = $this->get_blog_data(array('blog_name' => $blogName));
-		$this->blogId = $data['blog_id'];
-		$this->uid = $data['uid'];
+		if(!is_array($data)) {
+			throw new exception(__METHOD__ .": unable to retrieve data about (". $blogName .")");
+		}
+		//Get the first uid/blogId combo...
+		$keys = array_keys($data);
+		
+		#$this->gfObj->debug_print($data[$keys[0]],1);
+		$this->blogId = $data[$keys[0]]['blog_id'];
+		$this->uid = $data[$keys[0]]['uid'];
+		
+		if(!is_numeric($this->blogId) || !is_numeric($this->uid)) {
+			throw new exception(__METHOD__ .": invalid blogId (". $this->blogId .") or uid (". $this->uid .")");
+		}
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	

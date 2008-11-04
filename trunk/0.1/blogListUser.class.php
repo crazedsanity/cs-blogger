@@ -20,6 +20,7 @@ class blogListUser extends blog {
 	//-------------------------------------------------------------------------
 	public function __construct($username) {
 		
+		parent::__construct($username);
 		$this->_initialize_locals();
 		if(!is_null($username) && strlen($username)) {
 			$this->userBlogs = $this->get_blog_data(array('a.username' => $username));

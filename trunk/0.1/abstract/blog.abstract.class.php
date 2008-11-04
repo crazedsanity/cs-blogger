@@ -60,7 +60,7 @@ abstract class blogAbstract {
 		$dberror = $this->dbObj->errorMsg();
 		
 		if(strlen($dberror) || !is_numeric($numrows) || $numrows < 0) {
-			throw new exception(__METHOD__ .": invalid numrows (". $numrows .") or database error: ". $dberror ."<BR>\nSQL: ". $sql);
+			throw new exception(__METHOD__ .": invalid numrows (". $numrows .") or database error: ". $dberror ."<BR>\nSQL: ". $sql ."<BR>\n". cs_debug_backtrace(0));
 		}
 		else {
 			$retval = $numrows;
@@ -307,7 +307,14 @@ abstract class blogAbstract {
 		$numrows = $this->run_sql($sql);
 		
 		if($numrows >= 1) {
-			$retval = $this->fix_db_array_indexes($this->dbObj->farray_fieldnames('b.blog_name', NULL, FALSE));
+			$myData = $this->dbObj->farray_fieldnames('b.blog_name', NULL, FALSE);
+			if($numrows == 1) {
+				$retval[$myData['b.blog_name']] = $this->fix_db_array_indexes($myData)	;
+			}
+			else {
+				$retval = $this->fix_db_array_indexes($myData);
+				#$retval = $myData;
+			}
 		}
 		else {
 			throw new exception(__METHOD__ .": failed to retrieve data, SQL::: ". $sql);
