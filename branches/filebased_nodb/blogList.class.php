@@ -57,5 +57,5 @@ class blogList extends blog {
 		return($retval);
 	}//end get_most_recent_blogs()
 	//-------------------------------------------------------------------------
-}//end blog{}
+}//end blogList{}
 
