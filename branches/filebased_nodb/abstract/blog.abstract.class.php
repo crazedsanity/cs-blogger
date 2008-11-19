@@ -1,7 +1,8 @@
 <?php
 
+require_once(dirname(__FILE__) .'/blogIndex.abstract.class.php');
 
-abstract class blogAbstract {
+abstract class blogAbstract extends blogIndexAbstract {
 	
 	#protected $dbObj;
 	
@@ -32,24 +33,6 @@ abstract class blogAbstract {
 			throw new exception(__METHOD__ .": no blogName set (". $blogName .")");
 		}
 	}//end __construct()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	protected function _initialize_locals() {
-		if($this->isInitialized !== TRUE) {
-			$this->fsObj = new cs_fileSystemClass(CS_BLOGRWDIR);
-			$this->gfObj = new cs_globalFunctions;
-			$this->dbObj = new cs_phpDB('sqlite');
-			$parameters = array(
-				'dbname'	=> CS_BLOGDBNAME,
-				'rwDir'		=> CS_SQLITEDBDIR
-			);
-			$this->dbObj->connect($parameters);
-			$this->isInitialized = TRUE;
-		}
-	}//end _initialize_locals()
 	//-------------------------------------------------------------------------
 	
 	
