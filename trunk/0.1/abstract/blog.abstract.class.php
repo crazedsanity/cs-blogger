@@ -166,7 +166,7 @@ abstract class blogAbstract {
 			
 			case ($age <= 2592000): {
 				//modified this month.
-				$extraText = '<b>Updated this month</b>';
+				$extraText = '<b>Less than a month old</b>';
 			} break;
 			
 			case ($age <= 5184000): {
