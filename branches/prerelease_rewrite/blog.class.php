@@ -11,16 +11,10 @@ class blog extends dataLayerAbstract {
 	protected $blogName;
 	
 	//-------------------------------------------------------------------------
-	public function __construct($blogName) {
+	public function __construct($blogName, $dbType, array $dbParams) {
 		
 		//TODO: put these in the constructor args, or require CONSTANTS.
-		parent::__construct(
-			CSBLOG__DBTYPE, 
-			array(
-				'rwDir'		=> CSBLOG__RWDIR,
-				'dbname'	=> CSBLOG__DBNAME
-			)
-		);
+		parent::__construct($dbType, $dbParams);
 		
 		
 		if(!isset($blogName) || !strlen($blogName)) {
