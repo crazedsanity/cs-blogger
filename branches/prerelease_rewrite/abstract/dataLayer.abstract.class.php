@@ -16,31 +16,36 @@ abstract class dataLayerAbstract{
 	
 	//-------------------------------------------------------------------------
 	public function run_setup() {
-		#$fs = new cs_fileSystemClass(dirname(__FILE__) .'/schema');
-		#$mySchema = $fs->read(CSBLOG__DBTYPE .'.schema.sql');
 		
-		#$this->gf->debug_print($mySchema);
-		#$retval = $this->db->exec($mySchema);
 		
 		$retval = false;
-		$cmd = 'cat '. dirname(__FILE__) .'/../schema/'. CSBLOG__DBTYPE .'.schema.sql | sqlite '. CSBLOG__RWDIR .'/'. CSBLOG__DBNAME;
-		$this->gf->debug_print(__METHOD__ .": COMMAND: ". $cmd);
-		system($cmd, $retval);
-		
-		if($retval !== 0) {
-			throw new exception(__METHOD__ .": failed to create database with result (". $retval .")");
+		if(CSBLOG__DBTYPE == 'sqlite') {
+			//SQLite
+			$cmd = 'cat '. dirname(__FILE__) .'/../schema/'. CSBLOG__DBTYPE .'.schema.sql | psql '. CSBLOG__RWDIR .'/'. CSBLOG__DBNAME;
+			$this->gf->debug_print(__METHOD__ .": COMMAND: ". $cmd);
+			system($cmd, $retval);
+			
+			if($retval !== 0) {
+				throw new exception(__METHOD__ .": failed to create database with result (". $retval .")");
+			}
+			else {
+				$retval = true;
+			}
 		}
 		else {
-			$retval = true;
+			//PostgreSQL (or MySQL)
+			$this->db->beginTrans();
+			$fs = new cs_fileSystemClass(dirname(__FILE__) .'/../schema');
+			$mySchema = $fs->read(CSBLOG__DBTYPE .'.schema.sql');
+			
+			#$this->gf->debug_print($mySchema);
+			$retval = $this->db->exec($mySchema);
 		}
-		
-		#$this->gf->debug_print(__METHOD__ .': retval=('. $retval .')');
 		
 		$retval = $this->db->exec("select * from cs_authentication_table");
-		if($retval >= 0) {
+		if($retval <= 0) {
 			throw new exception(__METHOD__ .": no users created (". $retval ."), must have failed: ". $this->db->errorMsg());
 		}
-		$this->gf->debug_print($this->db->farray_fieldnames());
 		return($retval);
 	}//end run_setup()
 	//-------------------------------------------------------------------------
