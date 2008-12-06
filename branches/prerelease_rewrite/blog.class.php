@@ -5,9 +5,6 @@ require_once(dirname(__FILE__) .'/abstract/dataLayer.abstract.class.php');
 class blog extends dataLayerAbstract {
 	
 	/**  */
-	protected $gf;
-	
-	/**  */
 	protected $blogName;
 	
 	//-------------------------------------------------------------------------
@@ -22,23 +19,7 @@ class blog extends dataLayerAbstract {
 		}
 		
 		$this->blogName = $blogName;
-		$this->gf = new cs_globalFunctions();
-		$this->gf->debugPrintOpt=1;
 	}//end __construct()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	public function create_new_blog($blogName) {
-		if(!isset($blogName) || !strlen($blogName)) {
-			throw new exception(__METHOD__ .": invalid blog name given (". $blogName .")");
-		}
-		
-		$retval = false;
-		
-		return($retval);
-	}//end create_new_blog()
 	//-------------------------------------------------------------------------
 	
 	

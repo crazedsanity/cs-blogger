@@ -1,5 +1,5 @@
 
-begin;
+--begin;
 
 CREATE TABLE cs_authentication_table (
 	uid serial NOT NULL PRIMARY KEY,
@@ -13,9 +13,8 @@ create table cs_blog_table (
 	blog_id serial NOT NULL PRIMARY KEY,
 	uid integer NOT NULL REFERENCES cs_authentication_table(uid),
 	blog_name text NOT NULL,
-	location text NOT NULL,
 	is_active boolean NOT NULL DEFAULT true,
-	last_post_timestamp integer
+	last_post_timestamp timestamp without time zone
 );
 
 CREATE TABLE cs_blog_access_table (
@@ -47,4 +46,6 @@ CREATE TABLE cs_session_table (
 --NOTE: password for "test" is "test".
 INSERT INTO cs_authentication_table (username, passwd) VALUES('test','a0d987ef6826c00ff6e4ac0851ea4744');
 
+-- SET NEXT UID TO BE > 100...
+select setval('cs_authentication_table_uid_seq',100);
 --abort;
