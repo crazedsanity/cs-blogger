@@ -13,6 +13,8 @@ create table cs_blog_table (
 	blog_id serial NOT NULL PRIMARY KEY,
 	uid integer NOT NULL REFERENCES cs_authentication_table(uid),
 	blog_name text NOT NULL,
+	blog_display_name text NOT NULL,
+	blog_location text NOT NULL,
 	is_active boolean NOT NULL DEFAULT true,
 	last_post_timestamp timestamp without time zone
 );

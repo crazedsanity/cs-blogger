@@ -27,7 +27,7 @@ abstract class dataLayerAbstract{
 		
 		//check that some required constants exist.
 		if(!defined('CSBLOG_TITLE_MINLEN')) {
-			define('CSBLOG_TITLE_MINLEN', 5);
+			define('CSBLOG_TITLE_MINLEN', 4);
 		}
 	}//end __construct()
 	//-------------------------------------------------------------------------
@@ -145,7 +145,7 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
-	function create_blog($blogName, $owner) {
+	function create_blog($blogName, $owner, $location) {
 		if(!strlen($blogName)) {
 			throw new exception(__METHOD__ .": invalid blogName (". $blogName .")");
 		}
@@ -156,10 +156,13 @@ abstract class dataLayerAbstract{
 		if(!is_numeric($owner)) {
 			$owner = $this->get_uid($owner);
 		}
+		$formattedBlogName = $this->create_permalink_from_title($blogName);
 		$sql = "INSERT INTO cs_blog_table ". $this->gfObj->string_from_array(
 			array(
-				'blog_name'		=> $blogName,
-				'uid'			=> $owner
+				'blog_display_name'		=> $blogName,
+				'blog_name'				=> $formattedBlogName,
+				'uid'					=> $owner,
+				'blog_location'			=> $location
 			),
 			'insert',
 			NULL,
@@ -180,6 +183,11 @@ abstract class dataLayerAbstract{
 				$data = $this->db->farray();
 				$retval = $data[0];
 				$this->gfObj->debug_print(__METHOD__ .": new blog_id=(". $retval .")");
+				
+				//Initialize locals now, if it hasn't been done yet.
+				if(defined('CSBLOG_SETUP_PENDING')) {
+					$this->initialize_locals($formattedBlogName);
+				}
 			}
 			else {
 				throw new exception(__METHOD__ .": failed to get new blog_id, numrows=(". $numrows ."): ". $dberror);
@@ -203,7 +211,7 @@ abstract class dataLayerAbstract{
 		$cleanStringArr = array(
 			'blog_id'		=> "integer",
 			'author_uid'	=> "integer",
-			'title'			=> "none",
+			'title'			=> "sql92_insert",
 			'content'		=> "sql92_insert",
 			'permalink'		=> "email"
 		);
@@ -263,7 +271,10 @@ abstract class dataLayerAbstract{
 		$dberror = $this->db->errorMsg();
 		
 		if(is_numeric($numrows) && $numrows == 1 && !strlen($dberror)) {
-			$retval = $this->db->get_currval('cs_blog_entry_table_blog_entry_id_seq');
+			$retval = array(
+				'blog_entry_id'		=> $this->db->get_currval('cs_blog_entry_table_blog_entry_id_seq'),
+				'full_permalink'	=> $this->blogLocation ."/". $sqlArr['permalink']
+			);
 		}
 		else {
 			throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to insert data (". $dberror .")");
@@ -317,6 +328,105 @@ abstract class dataLayerAbstract{
 		$retval = base64_decode($content);
 		return($retval);
 	}//end decode_content()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function get_blog_entry($fullPermalink) {
+		//the total permalink length should be at least double the minimum title length to include a path.
+		if(strlen($fullPermalink) > (CSBLOG_TITLE_MINLEN *2)) {
+			//now get the permalink separate from the title.
+			$parts = explode('/', $fullPermalink);
+			$permalink = $parts[(count($parts)-1)];
+			$location = preg_replace('/'. $permalink .'$/', '', $fullPermalink);
+			$location = preg_replace('/\/+$/', '', $location);
+			
+			$this->gfObj->debug_print("Location: (". $location ."), permalink: (". $permalink .")");
+			
+			$sql = "SELECT be.* FROM cs_blog_entry_table AS be INNER JOIN cs_blog_table AS b ON (be.blog_id=b.blog_id) " .
+					"WHERE b.blog_location='". $location ."' AND be.permalink='". $permalink ."'";
+			
+			$this->gfObj->debug_print($sql);
+			
+			$numrows = $this->db->exec($sql);
+			$dberror = $this->db->errorMsg();
+			
+			if($numrows == 1 && !strlen($dberror)) {
+				$retval = $this->db->farray_fieldnames();
+				if(isset($retval['content'])) {
+					$retval['content'] = $this->decode_content($retval['content']);
+					$retval['full_permalink'] = $fullPermalink;
+				}
+				else {
+					throw new exception(__METHOD__ .": can't find 'content' section for decoding");
+				}
+			}
+			elseif($numrows > 1) {
+				throw new exception(__METHOD__ .": multiple records returned for same location (". $numrows .")");
+			}
+			else {
+				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror (". $dberror .")");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": failed to meet length requirement of ". (CSBLOG_TITLE_MINLEN *2));
+		}
+		
+		return($retval);
+	}//end get_blog_entry()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function get_blog_data_by_name($blogName) {
+		if(strlen($blogName) > 3) {
+			$blogName = $this->gfObj->cleanString($this->create_permalink_from_title($blogName), 'sql');
+			$sql = "SELECT * FROM cs_blog_table WHERE blog_name='". $blogName ."'";
+			
+			$numrows = $this->db->exec($sql);
+			$dberror = $this->db->errorMsg();
+			
+			if($numrows == 1 && !strlen($dberror)) {
+				$retval = $this->db->farray_fieldnames();
+			}
+			else {
+				$this->gfObj->debug_print($sql);
+				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror (". $dberror .")");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid blog name (". $blogName .")");
+		}
+		
+		return($retval);
+	}//end get_blog_data_by_id()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function get_blog_data_by_id($blogId) {
+		if(is_numeric($blogId) && $blogId > 0) {
+			$sql = "SELECT * FROM cs_blog_table WHERE blog_id=". $blogId;
+			
+			$numrows = $this->db->exec($sql);
+			$dberror = $this->db->errorMsg();
+			
+			if($numrows == 1 && !strlen($dberror)) {
+				$retval = $this->db->farray_fieldnames();
+			}
+			else {
+				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror (". $dberror .")");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid blog id (". $blogId .")");
+		}
+		
+		return($retval);
+	}//end get_blog_data_by_id()
 	//-------------------------------------------------------------------------
 	
 	
