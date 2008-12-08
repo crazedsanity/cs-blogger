@@ -24,6 +24,11 @@ abstract class dataLayerAbstract{
 		$this->db->connect($dbParams);
 		$this->gfObj = new cs_globalFunctions();
 		$this->gfObj->debugPrintOpt=1;
+		
+		//check that some required constants exist.
+		if(!defined('CSBLOG_TITLE_MINLEN')) {
+			define('CSBLOG_TITLE_MINLEN', 5);
+		}
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
@@ -191,8 +196,127 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
-	public function post_entry() {
-	}//end post_entry)
+	public function create_entry($blogId, $authorUid, $title, $content, array $optionalData=NULL) {
+		
+		//check to make sure we've got all the proper fields and they're formatted appropriately.
+		$sqlArr = array();
+		$cleanStringArr = array(
+			'blog_id'		=> "integer",
+			'author_uid'	=> "integer",
+			'title'			=> "none",
+			'content'		=> "sql92_insert",
+			'permalink'		=> "email"
+		);
+		if(is_numeric($blogId) && $blogId > 0) {
+			$sqlArr['blog_id'] = $blogId;
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid data for blogId (". $blogId .")");
+		}
+		if(is_numeric($authorUid) && $authorUid > 0) {
+			$sqlArr['author_uid'] = $authorUid;
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid data for authorUid (". $authorUid .")");
+		}
+		if(is_string($title) && strlen($title) > CSBLOG_TITLE_MINLEN) {
+			$sqlArr['title'] = $title;
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid data for title (". $title .")");
+		}
+		
+		//only allow a few other optional fields (make sure they're the appropriate data type).
+		if(is_array($optionalData) && count($optionalData)) {
+			
+			//there's only one option right now... but this makes it easy to update later.
+			$validOptionalFields = array(
+				'post_timestamp'	=> 'datetime'
+			);
+			
+			$intersectedArray = array_intersect_key($optionalData, $validOptionalFields);
+			
+			if(is_array($intersectedArray) && count($intersectedArray)) {
+				foreach($intersectedArray as $fieldName => $value) {
+					if(!isset($sqlArr[$fieldName])) {
+						$sqlArr[$fieldName] = $value;
+						$cleanStringArr[$fieldName] = $validOptionalFields[$fieldName];
+					}
+					else {
+						throw new exception(__METHOD__ .": index (". $fieldName .") already exists");
+					}
+				}
+			}
+		}
+		
+		//set some fields that can't be specified...
+		$sqlArr['permalink'] = $this->create_permalink_from_title($title);
+		$sqlArr['content'] = $this->encode_content($content);
+		
+		//build the SQL statement.
+		$sql = "INSERT iNTO cs_blog_entry_table ". $this->gfObj->string_from_array($sqlArr, 'insert', NULL, $cleanStringArr);
+		
+		$this->gfObj->debug_print($sql);
+		
+		//run the statement & check the output.
+		$numrows = $this->db->exec($sql);
+		$dberror = $this->db->errorMsg();
+		
+		if(is_numeric($numrows) && $numrows == 1 && !strlen($dberror)) {
+			$retval = $this->db->get_currval('cs_blog_entry_table_blog_entry_id_seq');
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to insert data (". $dberror .")");
+		}
+		
+		return($retval);
+	}//end create_entry)
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function create_permalink_from_title($title) {
+		if(is_string($title) && strlen($title) >= CSBLOG_TITLE_MINLEN) {
+			
+			$permalink = strtolower($title);
+			$permalink = preg_replace('/!/', '', $permalink);
+			$permalink = preg_replace('/&\+/', '-', $permalink);
+			$permalink = preg_replace('/\'/', '', $permalink);
+			$permalink = preg_replace("/[^a-zA-Z0-9_]/", "_", $permalink);
+			
+			if(!strlen($permalink)) {
+				throw new exception(__METHOD__ .": invalid filename (". $permalink .") from title=(". $title .")");
+			}
+			
+			//consolidate multiple underscores... (" . . ." becomes "______", after this becomes just "_")
+			$permalink = preg_replace('/__*/', '_', $permalink);
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid title (". $title .")");
+		}
+		
+		return($permalink);
+	}//end create_permalink_from_title()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function encode_content($content) {
+		//make it base64 data, so it is easy to insert.
+		$retval = base64_encode($content);
+		return($retval);
+	}//end encode_content()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function decode_content($content) {
+		$retval = base64_decode($content);
+		return($retval);
+	}//end decode_content()
 	//-------------------------------------------------------------------------
 	
 	

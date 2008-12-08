@@ -26,9 +26,9 @@ CREATE TABLE cs_blog_entry_table (
 	blog_entry_id serial NOT NULL PRIMARY KEY,
 	blog_id integer NOT NULL REFERENCES cs_blog_table(blog_id),
 	author_uid integer NOT NULL REFERENCES cs_authentication_table(uid),
-	create_date integer NOT NULL,
-	filename text NOT NULL,
-	post_timestamp integer NOT NULL,
+	create_date timestamp NOT NULL DEFAULT NOW(),
+	content text NOT NULL,
+	post_timestamp timestamp NOT NULL DEFAULT NOW(),
 	permalink text NOT NULL,
 	title text NOT NULL
 );
