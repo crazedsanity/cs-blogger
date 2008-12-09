@@ -17,6 +17,15 @@ class blog extends dataLayerAbstract {
 	protected $blogLocation;
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * The constructor.
+	 * 
+	 * @param $blogName		(str) name of blog (NOT the display name)
+	 * @param $dbType		(str) Type of database (pgsql/mysql/sqlite)
+	 * @param $dbParams		(array) connection options for database
+	 * 
+	 * @return exception	throws an exception on error.
+	 */
 	public function __construct($blogName, $dbType, array $dbParams) {
 		
 		//TODO: put these in the constructor args, or require CONSTANTS.
@@ -39,6 +48,11 @@ class blog extends dataLayerAbstract {
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Initializes information about the selected blog.
+	 * 
+	 * @param $blogName		(str) name of blog (NOT the display name)
+	 */
 	protected function initialize_locals($blogName) {
 		
 		$data = $this->get_blog_data_by_name($blogName);
@@ -53,6 +67,13 @@ class blog extends dataLayerAbstract {
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Retrieves protected (or private?) internal var values
+	 * 
+	 * @param $var			(str) name of internal var to retrieve
+	 * 
+	 * @return exception 	throws an exception if named var doesn't exist.
+	 */
 	public function get_internal_var($var) {
 		if(isset($this->$var)) {
 			$retval = $this->$var;

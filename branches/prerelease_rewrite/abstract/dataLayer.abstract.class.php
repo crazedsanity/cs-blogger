@@ -19,6 +19,12 @@ abstract class dataLayerAbstract{
 	protected $gfObj;
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Constructor (must be called from extending class)
+	 * 
+	 * @param $dbType	(str) type of database to connect to (pgsql/mysql/sqlite)
+	 * @param $dbParams	(array) list of connection parameters for selected db.
+	 */
    	function __construct($dbType='sqlite', array $dbParams) {
 		$this->db = new cs_phpDB($dbType);
 		$this->db->connect($dbParams);
@@ -35,6 +41,14 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Loads data into blank (or existing) database.
+	 * 
+	 * @param void			(void) none
+	 * 
+	 * @return exception	throws exception on error
+	 * @return (int)		Number of records existing in auth table.
+	 */
 	public function run_setup() {
 		$retval = false;
 		if(CSBLOG__DBTYPE == 'sqlite') {
@@ -69,6 +83,17 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Create a user in the database.  This assumes that the blogger is in 
+	 * complete control of authentication, so this doesn't work if an existing 
+	 * mechanism is already in place.
+	 * 
+	 * @param $username		(str) username to create
+	 * @param $password		(str) unencrypted password for the user
+	 * 
+	 * @return exception	throws exceptions on error
+	 * @return (int)		UID of new user
+	 */
 	public function create_user($username, $password) {
 		
 		$existingUser = $this->get_uid($username);
@@ -112,6 +137,15 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Retrieve UID for the given username (i.e. for checking dups)
+	 * 
+	 * @param $username		(str) username to check
+	 * 
+	 * @return exception	throws exception on error
+	 * @return false		boolean FALSE returned if no user
+	 * @return (int)		UID for existing user
+	 */
 	public function get_uid($username) {
 		
 		if(strlen($username) && is_string($username) && !is_numeric($username)) {
@@ -142,6 +176,16 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Creates new blog entry.
+	 * 
+	 * @param $blogName		(str) Display name of blog.
+	 * @param $owner		(str/int) UID of owner (username converted to uid)
+	 * @param $location		(str) location of blog
+	 * 
+	 * @return exception	throws exception on error
+	 * @return (int)		Newly created blog_id
+	 */
 	function create_blog($blogName, $owner, $location) {
 		if(!strlen($blogName)) {
 			throw new exception(__METHOD__ .": invalid blogName (". $blogName .")");
@@ -151,7 +195,11 @@ abstract class dataLayerAbstract{
 		}
 		
 		if(!is_numeric($owner)) {
+			$username = $owner;//for later
 			$owner = $this->get_uid($owner);
+			if(!is_numeric($owner) || $owner < 1) {
+				throw new exception(__METHOD__ .": unable to find UID for user (". $username .")");
+			}
 		}
 		$formattedBlogName = $this->create_permalink_from_title($blogName);
 		$sql = "INSERT INTO cs_blog_table ". $this->gfObj->string_from_array(
@@ -171,20 +219,16 @@ abstract class dataLayerAbstract{
 		if($numrows == 1) {
 			#throw new exception(__METHOD__ .": PUT SOMETHING HERE (". __FILE__ .": ". __LINE__ .")");
 			//pull the blogId.
-			$numrows = $this->db->exec("SELECT currval('cs_blog_table_blog_id_seq')");
-			$dberror = $this->db->errorMsg();
+			$retval = $this->db->get_currval('cs_blog_table_blog_id_seq');
 			
-			if($numrows == 1 && !strlen($dberror)) {
-				$data = $this->db->farray();
-				$retval = $data[0];
-				
+			if(is_numeric($retval) && $retval > 0) {
 				//Initialize locals now, if it hasn't been done yet.
 				if(defined('CSBLOG_SETUP_PENDING')) {
 					$this->initialize_locals($formattedBlogName);
 				}
 			}
 			else {
-				throw new exception(__METHOD__ .": failed to get new blog_id, numrows=(". $numrows ."): ". $dberror);
+				throw new exception(__METHOD__ .": new blog_id (". $retval .") is invalid");
 			}
 		}
 		else {
@@ -198,6 +242,19 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Create new entry for existing blog.
+	 * 
+	 * @param $blogId		(int) blog_id to associate entry with.
+	 * @param $authorUid	(int) UID of author
+	 * @param $title		(str) Title of blog.
+	 * @param $content		(str) Contents of blog.
+	 * @param $optionalData	(array) optional items to specify (i.e. 
+	 * 							post_timestamp)
+	 * 
+	 * @return exception	throws an exception on error
+	 * @return (array)		Array of data, indexes explain values
+	 */
 	public function create_entry($blogId, $authorUid, $title, $content, array $optionalData=NULL) {
 		
 		//check to make sure we've got all the proper fields and they're formatted appropriately.
@@ -279,6 +336,16 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Creates a "permalink" just from title (does NOT include blog location):
+	 * lowercases, strips special characters, uses "_" in place of spaces and 
+	 * special characters (NEVER creates more than one "_" in a row)
+	 * 
+	 * @param $title		(str) string to create permalink from.
+	 * 
+	 * @return exception	throws exception on error
+	 * @return (string)		permalink
+	 */
 	public function create_permalink_from_title($title) {
 		if(is_string($title) && strlen($title) >= CSBLOG_TITLE_MINLEN) {
 			
@@ -306,6 +373,13 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Encodes content using base64
+	 * 
+	 * @param $content		(str) content to encode
+	 * 
+	 * @return (string)		encoded content.
+	 */
 	public function encode_content($content) {
 		//make it base64 data, so it is easy to insert.
 		$retval = base64_encode($content);
@@ -316,8 +390,20 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Decoded content (reverse of encode_content())
+	 * 
+	 * @param $content		(str) Encoded content to decode
+	 * 
+	 * @return (string)		Decoded content.
+	 */
 	public function decode_content($content) {
-		$retval = base64_decode($content);
+		if(preg_match('/==$/', $content)) {
+			$retval = base64_decode($content);
+		}
+		else {
+			throw new exception(__METHOD__ .": content doesn't seem to be encoded");
+		}
 		return($retval);
 	}//end decode_content()
 	//-------------------------------------------------------------------------
@@ -325,6 +411,15 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Retrieve a blog entry based on the FULL permalink (location included)
+	 * 
+	 * @param $fullPermalink	(str) Permalink (blog location + permalink) for
+	 * 								entry.
+	 * 
+	 * @return exception		throws exception on error
+	 * @return (array)			Returns array of data, includes decoded content
+	 */
 	public function get_blog_entry($fullPermalink) {
 		//the total permalink length should be at least double the minimum title length to include a path.
 		if(strlen($fullPermalink) > (CSBLOG_TITLE_MINLEN *2)) {
@@ -368,6 +463,14 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Retrieves all data about a blog (the main entry only) by its name.
+	 * 
+	 * @param $blogName		(str) name of blog (displayable or proper)
+	 * 
+	 * @return exception	throws exceptions on error
+	 * @return (array)		array of data about the blog.
+	 */
 	public function get_blog_data_by_name($blogName) {
 		if(strlen($blogName) > 3) {
 			$blogName = $this->gfObj->cleanString($this->create_permalink_from_title($blogName), 'sql');
@@ -394,6 +497,14 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
+	/**
+	 * Same as get_blog_data_by_name(), but use blog_id to find it.
+	 * 
+	 * @param $blogId		(int) blog_id to retrieve info for.
+	 * 
+	 * @return exception	throws exception on error
+	 * @return (array)		array of data about the blog.
+	 */
 	public function get_blog_data_by_id($blogId) {
 		if(is_numeric($blogId) && $blogId > 0) {
 			$sql = "SELECT * FROM cs_blog_table WHERE blog_id=". $blogId;
@@ -419,8 +530,17 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
-	public function update_entry($blogId, array $updates) {
-		if(is_numeric($blogId) && $blogId > 0 && is_array($updates) && count($updates)) {
+	/**
+	 * Updates a single entry (within a transaction)
+	 * 
+	 * @param $blogEntryId		(int) blog_entry_id to update.
+	 * @param $updates			(array) array of field=>value updates
+	 * 
+	 * @return exception		throws exception on error.
+	 * @return true				returns boolean TRUE on success.
+	 */
+	public function update_entry($blogEntryId, array $updates) {
+		if(is_numeric($blogEntryId) && $blogEntryId > 0 && is_array($updates) && count($updates)) {
 			$validFields = array(
 				'post_timestamp'	=> 'datetime',
 				'content'			=> 'sql92_insert'
@@ -434,7 +554,7 @@ abstract class dataLayerAbstract{
 				}
 				
 				$sql = "UPDATE cs_blog_entry_table SET ". $this->gfObj->string_from_array($updateThis, 'update', NULL, $validFields)
-					." WHERE blog_id=". $blogId;
+					." WHERE blog_entry_id=". $blogEntryId;
 				
 				$this->gfObj->debug_print($sql);
 				
