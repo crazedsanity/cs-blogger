@@ -67,14 +67,5 @@ class blog extends dataLayerAbstract {
 	
 	
 	
-	//-------------------------------------------------------------------------
-	public function destroy_blog($blogName) {
-		$retval = false;
-		
-		return($retval);
-	}//end destroy_blog()
-	//-------------------------------------------------------------------------
-	
-	
 }// end blog{}
 ?>

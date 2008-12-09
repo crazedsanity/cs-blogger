@@ -40,7 +40,6 @@ abstract class dataLayerAbstract{
 		if(CSBLOG__DBTYPE == 'sqlite') {
 			//SQLite
 			$cmd = 'cat '. dirname(__FILE__) .'/../schema/'. CSBLOG__DBTYPE .'.schema.sql | psql '. CSBLOG__RWDIR .'/'. CSBLOG__DBNAME;
-			$this->gfObj->debug_print(__METHOD__ .": COMMAND: ". $cmd);
 			system($cmd, $retval);
 			
 			if($retval !== 0) {
@@ -56,7 +55,6 @@ abstract class dataLayerAbstract{
 			$fs = new cs_fileSystemClass(dirname(__FILE__) .'/../schema');
 			$mySchema = $fs->read(CSBLOG__DBTYPE .'.schema.sql');
 			
-			#$this->gfObj->debug_print($mySchema);
 			$retval = $this->db->exec($mySchema);
 		}
 		
@@ -79,7 +77,6 @@ abstract class dataLayerAbstract{
 		var_dump($existingUser);
 		$debugThis = ob_get_contents();
 		ob_end_clean();
-		$this->gfObj->debug_print(__METHOD__ .": existing user=(". $debugThis .")");
 		
 		if($existingUser === false) {
 			$pass = md5($username .'-'. $password);
@@ -169,8 +166,6 @@ abstract class dataLayerAbstract{
 			'sql_insert'
 		);
 		
-		$this->gfObj->debug_print(__METHOD__ .": SQL::: ". $sql);
-		
 		$numrows = $this->db->exec($sql);
 		
 		if($numrows == 1) {
@@ -182,7 +177,6 @@ abstract class dataLayerAbstract{
 			if($numrows == 1 && !strlen($dberror)) {
 				$data = $this->db->farray();
 				$retval = $data[0];
-				$this->gfObj->debug_print(__METHOD__ .": new blog_id=(". $retval .")");
 				
 				//Initialize locals now, if it hasn't been done yet.
 				if(defined('CSBLOG_SETUP_PENDING')) {
@@ -264,8 +258,6 @@ abstract class dataLayerAbstract{
 		//build the SQL statement.
 		$sql = "INSERT iNTO cs_blog_entry_table ". $this->gfObj->string_from_array($sqlArr, 'insert', NULL, $cleanStringArr);
 		
-		$this->gfObj->debug_print($sql);
-		
 		//run the statement & check the output.
 		$numrows = $this->db->exec($sql);
 		$dberror = $this->db->errorMsg();
@@ -342,12 +334,8 @@ abstract class dataLayerAbstract{
 			$location = preg_replace('/'. $permalink .'$/', '', $fullPermalink);
 			$location = preg_replace('/\/+$/', '', $location);
 			
-			$this->gfObj->debug_print("Location: (". $location ."), permalink: (". $permalink .")");
-			
 			$sql = "SELECT be.* FROM cs_blog_entry_table AS be INNER JOIN cs_blog_table AS b ON (be.blog_id=b.blog_id) " .
 					"WHERE b.blog_location='". $location ."' AND be.permalink='". $permalink ."'";
-			
-			$this->gfObj->debug_print($sql);
 			
 			$numrows = $this->db->exec($sql);
 			$dberror = $this->db->errorMsg();
@@ -392,7 +380,6 @@ abstract class dataLayerAbstract{
 				$retval = $this->db->farray_fieldnames();
 			}
 			else {
-				$this->gfObj->debug_print($sql);
 				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror (". $dberror .")");
 			}
 		}
@@ -401,7 +388,7 @@ abstract class dataLayerAbstract{
 		}
 		
 		return($retval);
-	}//end get_blog_data_by_id()
+	}//end get_blog_data_by_name()
 	//-------------------------------------------------------------------------
 	
 	
@@ -427,6 +414,53 @@ abstract class dataLayerAbstract{
 		
 		return($retval);
 	}//end get_blog_data_by_id()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function update_entry($blogId, array $updates) {
+		if(is_numeric($blogId) && $blogId > 0 && is_array($updates) && count($updates)) {
+			$validFields = array(
+				'post_timestamp'	=> 'datetime',
+				'content'			=> 'sql92_insert'
+			);
+			$updateThis = array_intersect_key($updates, $validFields);
+			if(is_array($updateThis) && count($updateThis)) {
+				
+				//encode teh content as before.
+				if(isset($updateThis['content'])) {
+					$updateThis['content'] = $this->encode_content($updateThis['content']);
+				}
+				
+				$sql = "UPDATE cs_blog_entry_table SET ". $this->gfObj->string_from_array($updateThis, 'update', NULL, $validFields)
+					." WHERE blog_id=". $blogId;
+				
+				$this->gfObj->debug_print($sql);
+				
+				$this->db->beginTrans();
+				$numrows = $this->db->exec($sql);
+				$dberror = $this->db->errorMsg();
+				
+				if($numrows == 1 && !strlen($dberror)) {
+					$this->db->commitTrans();
+					$retval = true;
+				}
+				else {
+					$this->db->abortTrans();
+					throw new exception(__METHOD__ .": update failed, numrows=(". $numrows ."), dberror::: ". $dberror);
+				}
+			}
+			else {
+				throw new exception(__METHOD__ .": no valid fields in updates array");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid data passed");
+		}
+		
+		return($retval);
+	}//end update_entry()
 	//-------------------------------------------------------------------------
 	
 	
