@@ -31,7 +31,7 @@ CREATE TABLE cs_blog_entry_table (
 	create_date timestamp NOT NULL DEFAULT NOW(),
 	content text NOT NULL,
 	post_timestamp timestamp NOT NULL DEFAULT NOW(),
-	permalink text NOT NULL,
+	permalink text NOT NULL UNIQUE,
 	title text NOT NULL
 );
 CREATE TABLE cs_session_table (

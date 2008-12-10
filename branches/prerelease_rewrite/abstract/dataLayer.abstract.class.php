@@ -308,8 +308,17 @@ abstract class dataLayerAbstract{
 			}
 		}
 		
+		
+		//lets check to see that there is NOT already a blog like this...
+		$permalink = $this->create_permalink_from_title($title);
+		$checkLink = $this->check_permalink($blogId, $title);
+		
+		$this->gfObj->debug_print(__METHOD__ .": checkLink was (". $checkLink .")");
+		if($checkLink != $permalink) {
+			$permalink = $checkLink;
+		}
 		//set some fields that can't be specified...
-		$sqlArr['permalink'] = $this->create_permalink_from_title($title);
+		$sqlArr['permalink'] = $permalink;
 		$sqlArr['content'] = $this->encode_content($content);
 		
 		//build the SQL statement.
@@ -581,6 +590,54 @@ abstract class dataLayerAbstract{
 		
 		return($retval);
 	}//end update_entry()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	/**
+	 * Determines if there is one or more matching permalinks for the given 
+	 * blog; duplicates are given a suffix of "-N" (where "N" is the number of
+	 * matching entries; first dup is given "-1", and so on).
+	 * 
+	 * @param $blogId		(int) blog_id for the permalink 
+	 * @param $permaLink	(str) permalink to check
+	 * 
+	 * @return exception	thrown on error.
+	 * @return 
+	 */
+	public function check_permalink($blogId, $permalink) {
+		if(is_string($permalink) && strlen($permalink) >= CSBLOG_TITLE_MINLEN && is_numeric($blogId) && $blogId > 0) {
+			#if($permalink == $this->create_permalink_from_title($permalink)) {
+			$permalink = $this->create_permalink_from_title($permalink);
+			$sql = "SELECT * FROM cs_blog_entry_table WHERE blog_id=". $blogId 
+				." AND permalink='". $permalink ."' OR permalink LIKE '". $permalink ."-%'";
+			
+			$numrows = $this->db->exec($sql);
+			$dberror = $this->db->errorMsg();
+			
+			if($numrows >= 0 && !strlen($dberror)) {
+				if($numrows >= 1) {
+					//got a record, give 'em the data back.
+					$retval = $permalink ."-". $numrows;
+				}
+				elseif($numrows == 0) {
+					$retval = $permalink;
+				}
+				else {
+					throw new exception(__METHOD__ .": unknown error, numrows=(". $numrows ."), dberror::: ". $dberror);
+				}
+			}
+			else {
+				throw new exception(__METHOD__ .": invalid numrows (". $numrows .") or dberror:::". $dberror);
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid permalink (". $permalink .") or blog_id (". $blogId .")");
+		}
+		
+		return($retval);
+	}//end check_permalink()
 	//-------------------------------------------------------------------------
 	
 	
