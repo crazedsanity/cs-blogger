@@ -26,10 +26,10 @@ class blog extends dataLayerAbstract {
 	 * 
 	 * @return exception	throws an exception on error.
 	 */
-	public function __construct($blogName, $dbType, array $dbParams) {
+	public function __construct($blogName) {
 		
 		//TODO: put these in the constructor args, or require CONSTANTS.
-		parent::__construct($dbType, $dbParams);
+		parent::__construct();
 		
 		
 		if(!isset($blogName) || !strlen($blogName)) {

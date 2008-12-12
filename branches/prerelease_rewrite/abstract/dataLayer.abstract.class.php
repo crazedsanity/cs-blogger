@@ -18,6 +18,9 @@ abstract class dataLayerAbstract{
 	/**  */
 	protected $gfObj;
 	
+	/**  */
+	private $isConnected=false;
+	
 	//-------------------------------------------------------------------------
 	/**
 	 * Constructor (must be called from extending class)
@@ -25,9 +28,8 @@ abstract class dataLayerAbstract{
 	 * @param $dbType	(str) type of database to connect to (pgsql/mysql/sqlite)
 	 * @param $dbParams	(array) list of connection parameters for selected db.
 	 */
-   	function __construct($dbType='sqlite', array $dbParams) {
-		$this->db = new cs_phpDB($dbType);
-		$this->db->connect($dbParams);
+   	function __construct(array $dbParams=NULL) {
+   		$this->connect_db($dbParams);
 		$this->gfObj = new cs_globalFunctions();
 		$this->gfObj->debugPrintOpt=1;
 		
@@ -36,6 +38,87 @@ abstract class dataLayerAbstract{
 			define('CSBLOG_TITLE_MINLEN', 4);
 		}
 	}//end __construct()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	protected function connect_db(array $dbParams=NULL) {
+		if(is_array($dbParams)) {
+			$this->db = new cs_phpDB('pgsql');
+			$this->db->connect($dbParams);
+			
+			//NOTE: if the call to "connect()" fails, it should throw an exception.
+			$this->isConnected=true;
+		}
+		else {
+			//no parameters passed.  Try using constants.
+		
+			$constantList = array(
+				'CSBLOG_DB_HOST'		=> 'host',
+				'CSBLOG_DB_PORT'		=> 'port',
+				'CSBLOG_DB_DBNAME'		=> 'dbname',
+				'CSBLOG_DB_USER'		=> 'user',
+				'CSBLOG_DB_PASSWORD'	=> 'password'
+			);
+			
+			$dbParams = array();
+			foreach($constantList as $constant=>$index) {
+				$value = '';
+				if(defined($constant)) {
+					$value = constant($constant);
+				}
+				$dbParams[$index] = $value;
+			}
+			$this->db = new cs_phpDB('pgsql');
+			$this->db->connect($dbParams);
+			
+			//NOTE: if the call to "connect()" fails, it should throw an exception.
+			$this->isConnected = true;
+		}
+	}//end connect_db()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function run_sql($sql, $exceptionOnNoRows=true) {
+		//TODO: make EVERYTHING use this method, so it can automatically connect to the database.
+		if($this->isConnected !== true) {
+			$this->connect_db();
+		}
+		
+		if($this->isConnected === true) {
+			if(is_string($sql) && strlen($sql)) {
+				
+				//run the statement & check the output.
+				$numrows = $this->db->exec($sql);
+				$dberror = $this->db->errorMsg();
+				
+				if($exceptionOnNoRows === true && $numrows <= 0 && !strlen($dberror)) {
+					cs_debug_backtrace(1);
+					throw new exception(__METHOD__ .": no rows returned (". $numrows .")");
+				}
+				elseif(is_numeric($numrows) && !strlen($dberror)) {
+					$retval = $numrows;
+				}
+				else {
+					$this->gfObj->debug_print($this->db);
+					cs_debug_backtrace(1);
+					throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to insert data... DBERROR: ". $dberror);
+				}
+				
+			}
+			else {
+				throw new exception(__METHOD__ .": no sql to run");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": database isn't connected");
+		}
+		
+		return($retval);
+	}//end run_sql()
 	//-------------------------------------------------------------------------
 	
 	
@@ -51,26 +134,12 @@ abstract class dataLayerAbstract{
 	 */
 	public function run_setup() {
 		$retval = false;
-		if(CSBLOG__DBTYPE == 'sqlite') {
-			//SQLite
-			$cmd = 'cat '. dirname(__FILE__) .'/../schema/'. CSBLOG__DBTYPE .'.schema.sql | psql '. CSBLOG__RWDIR .'/'. CSBLOG__DBNAME;
-			system($cmd, $retval);
-			
-			if($retval !== 0) {
-				throw new exception(__METHOD__ .": failed to create database with result (". $retval .")");
-			}
-			else {
-				$retval = true;
-			}
-		}
-		else {
-			//PostgreSQL (or MySQL)
-			$this->db->beginTrans();
-			$fs = new cs_fileSystemClass(dirname(__FILE__) .'/../schema');
-			$mySchema = $fs->read(CSBLOG__DBTYPE .'.schema.sql');
-			
-			$retval = $this->db->exec($mySchema);
-		}
+		//PostgreSQL (or MySQL?)
+		$this->db->beginTrans();
+		$fs = new cs_fileSystemClass(dirname(__FILE__) .'/../schema');
+		$mySchema = $fs->read(CSBLOG__DBTYPE .'.schema.sql');
+		
+		$retval = $this->db->exec($mySchema);
 		
 		$retval = $this->db->exec("select * from cs_authentication_table");
 		if($retval <= 0) {
@@ -107,12 +176,13 @@ abstract class dataLayerAbstract{
 			$pass = md5($username .'-'. $password);
 			$sql = 'INSERT INTO cs_authentication_table (username, passwd) VALUES ' .
 					"('". $username ."', '". $password ."')";
-			$numrows = $this->db->exec($sql);
-			$dberror = $this->db->errorMsg();
 			
-			if($numrows == 1 && !strlen($dberror)) {
+			$numrows = $this->run_sql($sql);
+			
+			if($numrows == 1) {
 				$sql = "SELECT currval('cs_authentication_table_uid_seq')";
-				$numrows = $this->db->exec($sql);
+				
+				$numrows = $this->run_sql($sql);
 				if($numrows == 1) {
 					$data = $this->db->farray();
 					$retval = $data[0];
@@ -122,7 +192,7 @@ abstract class dataLayerAbstract{
 				}
 			}
 			else {
-				throw new exception(__METHOD__ .": failed insert (". $numrows ."): ". $dberror);
+				throw new exception(__METHOD__ .": failed insert (". $numrows ."): ");
 			}
 		}
 		else {
@@ -151,7 +221,7 @@ abstract class dataLayerAbstract{
 		if(strlen($username) && is_string($username) && !is_numeric($username)) {
 			$username = $this->gfObj->cleanString($username, 'email');
 			$sql = "SELECT uid FROM cs_authentication_table WHERE username='". $username ."'";
-			$numrows = $this->db->exec($sql);
+			$numrows = $this->run_sql($sql, false);
 			
 			if($numrows == 1) {
 				$data = $this->db->farray();
@@ -201,23 +271,30 @@ abstract class dataLayerAbstract{
 				throw new exception(__METHOD__ .": unable to find UID for user (". $username .")");
 			}
 		}
+		
+		//attempt to get/create the location...
+		$locationId = $this->get_location_id($location);
+		if(!is_numeric($locationId) || $locationId < 1) {
+			//TODO: should we really be creating this automatically?
+			$locationId = $this->add_location($location);
+		}
+		
 		$formattedBlogName = $this->create_permalink_from_title($blogName);
 		$sql = "INSERT INTO cs_blog_table ". $this->gfObj->string_from_array(
 			array(
 				'blog_display_name'		=> $blogName,
 				'blog_name'				=> $formattedBlogName,
 				'uid'					=> $owner,
-				'blog_location'			=> $location
+				'blog_location_id'		=> $locationId
 			),
 			'insert',
 			NULL,
 			'sql_insert'
 		);
 		
-		$numrows = $this->db->exec($sql);
+		$numrows = $this->run_sql($sql);
 		
 		if($numrows == 1) {
-			#throw new exception(__METHOD__ .": PUT SOMETHING HERE (". __FILE__ .": ". __LINE__ .")");
 			//pull the blogId.
 			$retval = $this->db->get_currval('cs_blog_table_blog_id_seq');
 			
@@ -325,17 +402,16 @@ abstract class dataLayerAbstract{
 		$sql = "INSERT iNTO cs_blog_entry_table ". $this->gfObj->string_from_array($sqlArr, 'insert', NULL, $cleanStringArr);
 		
 		//run the statement & check the output.
-		$numrows = $this->db->exec($sql);
-		$dberror = $this->db->errorMsg();
+		$numrows = $this->run_sql($sql);
 		
-		if(is_numeric($numrows) && $numrows == 1 && !strlen($dberror)) {
+		if(is_numeric($numrows) && $numrows == 1) {
 			$retval = array(
 				'blog_entry_id'		=> $this->db->get_currval('cs_blog_entry_table_blog_entry_id_seq'),
 				'full_permalink'	=> $this->blogLocation ."/". $sqlArr['permalink']
 			);
 		}
 		else {
-			throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to insert data (". $dberror .")");
+			throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to insert data");
 		}
 		
 		return($retval);
@@ -438,13 +514,14 @@ abstract class dataLayerAbstract{
 			$location = preg_replace('/'. $permalink .'$/', '', $fullPermalink);
 			$location = preg_replace('/\/+$/', '', $location);
 			
-			$sql = "SELECT be.* FROM cs_blog_entry_table AS be INNER JOIN cs_blog_table AS b ON (be.blog_id=b.blog_id) " .
-					"WHERE b.blog_location='". $location ."' AND be.permalink='". $permalink ."'";
+			$sql = "SELECT be.*, bl.blog_location FROM cs_blog_entry_table AS be INNER JOIN cs_blog_table AS b " .
+					"ON (be.blog_id=b.blog_id) INNER JOIN cs_blog_location_table AS bl ON " .
+					"(b.blog_location_id=bl.blog_location_id) " .
+					"WHERE bl.blog_location='". $location ."' AND be.permalink='". $permalink ."'";
 			
-			$numrows = $this->db->exec($sql);
-			$dberror = $this->db->errorMsg();
+			$numrows = $this->run_sql($sql);
 			
-			if($numrows == 1 && !strlen($dberror)) {
+			if($numrows == 1) {
 				$retval = $this->db->farray_fieldnames();
 				if(isset($retval['content'])) {
 					$retval['content'] = $this->decode_content($retval['content']);
@@ -458,7 +535,7 @@ abstract class dataLayerAbstract{
 				throw new exception(__METHOD__ .": multiple records returned for same location (". $numrows .")");
 			}
 			else {
-				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror (". $dberror .")");
+				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror");
 			}
 		}
 		else {
@@ -483,16 +560,16 @@ abstract class dataLayerAbstract{
 	public function get_blog_data_by_name($blogName) {
 		if(strlen($blogName) > 3) {
 			$blogName = $this->gfObj->cleanString($this->create_permalink_from_title($blogName), 'sql');
-			$sql = "SELECT * FROM cs_blog_table WHERE blog_name='". $blogName ."'";
+			$sql = "SELECT b.*, bl.blog_location FROM cs_blog_table AS b INNER JOIN " .
+					"cs_blog_location_table AS bl USING (blog_location_id) WHERE blog_name='". $blogName ."'";
 			
-			$numrows = $this->db->exec($sql);
-			$dberror = $this->db->errorMsg();
+			$numrows = $this->run_sql($sql);
 			
-			if($numrows == 1 && !strlen($dberror)) {
+			if($numrows == 1) {
 				$retval = $this->db->farray_fieldnames();
 			}
 			else {
-				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror (". $dberror .")");
+				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror");
 			}
 		}
 		else {
@@ -518,14 +595,13 @@ abstract class dataLayerAbstract{
 		if(is_numeric($blogId) && $blogId > 0) {
 			$sql = "SELECT * FROM cs_blog_table WHERE blog_id=". $blogId;
 			
-			$numrows = $this->db->exec($sql);
-			$dberror = $this->db->errorMsg();
+			$numrows = $this->run_sql($sql);
 			
-			if($numrows == 1 && !strlen($dberror)) {
+			if($numrows == 1) {
 				$retval = $this->db->farray_fieldnames();
 			}
 			else {
-				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror (". $dberror .")");
+				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror");
 			}
 		}
 		else {
@@ -568,16 +644,15 @@ abstract class dataLayerAbstract{
 				$this->gfObj->debug_print($sql);
 				
 				$this->db->beginTrans();
-				$numrows = $this->db->exec($sql);
-				$dberror = $this->db->errorMsg();
+				$numrows = $this->run_sql($sql);
 				
-				if($numrows == 1 && !strlen($dberror)) {
+				if($numrows == 1) {
 					$this->db->commitTrans();
 					$retval = true;
 				}
 				else {
 					$this->db->abortTrans();
-					throw new exception(__METHOD__ .": update failed, numrows=(". $numrows ."), dberror::: ". $dberror);
+					throw new exception(__METHOD__ .": update failed, numrows=(". $numrows ."), dberror");
 				}
 			}
 			else {
@@ -613,10 +688,9 @@ abstract class dataLayerAbstract{
 			$sql = "SELECT * FROM cs_blog_entry_table WHERE blog_id=". $blogId 
 				." AND permalink='". $permalink ."' OR permalink LIKE '". $permalink ."-%'";
 			
-			$numrows = $this->db->exec($sql);
-			$dberror = $this->db->errorMsg();
+			$numrows = $this->run_sql($sql, false);
 			
-			if($numrows >= 0 && !strlen($dberror)) {
+			if($numrows >= 0) {
 				if($numrows >= 1) {
 					//got a record, give 'em the data back.
 					$retval = $permalink ."-". $numrows;
@@ -625,11 +699,11 @@ abstract class dataLayerAbstract{
 					$retval = $permalink;
 				}
 				else {
-					throw new exception(__METHOD__ .": unknown error, numrows=(". $numrows ."), dberror::: ". $dberror);
+					throw new exception(__METHOD__ .": unknown error, numrows=(". $numrows ."), dberror");
 				}
 			}
 			else {
-				throw new exception(__METHOD__ .": invalid numrows (". $numrows .") or dberror:::". $dberror);
+				throw new exception(__METHOD__ .": invalid numrows (". $numrows .") or dberror");
 			}
 		}
 		else {
@@ -638,6 +712,62 @@ abstract class dataLayerAbstract{
 		
 		return($retval);
 	}//end check_permalink()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function add_location($location) {
+		if(is_string($location) && strlen($location) > 3) {
+			$location = $this->gfObj->cleanString($location, "sql_insert");
+			$numrows = $this->run_sql("INSERT INTO cs_blog_location_table (blog_location) " .
+					"VALUES ('". $location ."')");
+			
+			if($numrows == 1) {
+				//okay, retrieve the id inserted.
+				$retval = $this->db->get_currval('cs_blog_location_table_blog_location_id_seq');
+			}
+			else {
+				throw new exception(__METHOD__ .": failed to create location (". $location ."), " .
+						"numrows=(". $numrows .")");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid location (". $location .")");
+		}
+		
+		return($retval);
+	}//end add_location()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function get_location_id($location) {
+		if(is_string($location) && strlen($location) > 3) {
+			$location = $this->gfObj->cleanString($location, "sql_insert");
+			$sql = "SELECT blog_location_id FROM cs_blog_location_table " .
+					"WHERE blog_location='". $location ."'";
+			$numrows = $this->run_sql($sql, false);
+			
+			if($numrows == 0) {
+				$retval = false;
+			}
+			elseif($numrows == 1) {
+				$retval = $this->db->farray();
+				$retval = $retval[0];
+			}
+			else {
+				throw new exception(__METHOD__ .": failed to retrieve location (". $location ."), " .
+						"invalid numrows (". $numrows .")");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid location (". $location .")");
+		}
+		
+		return($retval);
+	}//end get_location_id()
 	//-------------------------------------------------------------------------
 	
 	
