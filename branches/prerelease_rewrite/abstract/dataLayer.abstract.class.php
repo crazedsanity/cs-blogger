@@ -105,7 +105,7 @@ abstract class dataLayerAbstract{
 				else {
 					$this->gfObj->debug_print($this->db);
 					cs_debug_backtrace(1);
-					throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to insert data... DBERROR: ". $dberror);
+					throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to run SQL... DBERROR: ". $dberror);
 				}
 				
 			}
@@ -143,8 +143,10 @@ abstract class dataLayerAbstract{
 		
 		$retval = $this->db->exec("select * from cs_authentication_table");
 		if($retval <= 0) {
+			$this->db->rollbackTrans();
 			throw new exception(__METHOD__ .": no users created (". $retval ."), must have failed: ". $this->db->errorMsg());
 		}
+		$this->db->commitTrans();
 		return($retval);
 	}//end run_setup()
 	//-------------------------------------------------------------------------
@@ -483,7 +485,7 @@ abstract class dataLayerAbstract{
 	 * @return (string)		Decoded content.
 	 */
 	public function decode_content($content) {
-		if(preg_match('/==$/', $content)) {
+		if(preg_match('/=$/', $content)) {
 			$retval = base64_decode($content);
 		}
 		else {
@@ -768,6 +770,50 @@ abstract class dataLayerAbstract{
 		
 		return($retval);
 	}//end get_location_id()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function get_blog_entries(array $criteria, $orderBy, $limit=NULL, $offset=NULL) {
+		if(!is_array($criteria) || !count($criteria)) {
+			throw new exception(__METHOD__ .": invalid criteria");
+		}
+		
+		$sql = "SELECT be.*, bl.blog_location FROM cs_blog_entry_table AS be INNER JOIN " .
+				"cs_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN " .
+				"cs_blog_location_table AS bl ON (b.blog_location_id=bl.blog_location_id) WHERE ";
+		
+		//add stuff to the SQL...
+		foreach($criteria as $field=>$value) {
+			if(!preg_match('/^[a-z]\./', $field)) {
+				unset($criteria[$field]);
+				$field = "b.". $field;
+				$criteria[$field] = $value;
+			}
+		}
+		$sql .= $this->gfObj->string_from_array($criteria, 'select', NULL, 'sql');
+		
+		if(is_numeric($limit) && $limit > 0) {
+			$sql .= " LIMIT ". $limit;
+		}
+		if(is_numeric($offset) && $limit > 0) {
+			$sql .= " OFFSET ". $offset;
+		}
+		
+		$numrows = $this->run_sql($sql);
+		
+		$retval = $this->db->farray_fieldnames('blog_entry_id');
+		
+		return($retval);
+	}//end get_blog_entries()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function get_most_recent_blog() {
+	}//end get_most_recent_blog()
 	//-------------------------------------------------------------------------
 	
 	
