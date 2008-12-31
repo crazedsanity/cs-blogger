@@ -198,7 +198,6 @@ abstract class dataLayerAbstract{
 			}
 		}
 		else {
-			$this->gfObj->debug_print(__METHOD__ .": existing user=(". $existingUser .")");
 			throw new exception(__METHOD__ .": user exists (". $username .")");
 		}
 		
@@ -392,7 +391,6 @@ abstract class dataLayerAbstract{
 		$permalink = $this->create_permalink_from_title($title);
 		$checkLink = $this->check_permalink($blogId, $title);
 		
-		$this->gfObj->debug_print(__METHOD__ .": checkLink was (". $checkLink .")");
 		if($checkLink != $permalink) {
 			$permalink = $checkLink;
 		}
@@ -485,12 +483,7 @@ abstract class dataLayerAbstract{
 	 * @return (string)		Decoded content.
 	 */
 	public function decode_content($content) {
-		if(preg_match('/=$/', $content)) {
-			$retval = base64_decode($content);
-		}
-		else {
-			throw new exception(__METHOD__ .": content doesn't seem to be encoded");
-		}
+		$retval = base64_decode($content);
 		return($retval);
 	}//end decode_content()
 	//-------------------------------------------------------------------------
@@ -643,8 +636,6 @@ abstract class dataLayerAbstract{
 				$sql = "UPDATE cs_blog_entry_table SET ". $this->gfObj->string_from_array($updateThis, 'update', NULL, $validFields)
 					." WHERE blog_entry_id=". $blogEntryId;
 				
-				$this->gfObj->debug_print($sql);
-				
 				$this->db->beginTrans();
 				$numrows = $this->run_sql($sql);
 				
@@ -780,6 +771,7 @@ abstract class dataLayerAbstract{
 			throw new exception(__METHOD__ .": invalid criteria");
 		}
 		
+		//TODO: should be specifically limited to blogs that are accessible to current user.
 		$sql = "SELECT be.*, bl.blog_location FROM cs_blog_entry_table AS be INNER JOIN " .
 				"cs_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN " .
 				"cs_blog_location_table AS bl ON (b.blog_location_id=bl.blog_location_id) WHERE ";
@@ -793,6 +785,10 @@ abstract class dataLayerAbstract{
 			}
 		}
 		$sql .= $this->gfObj->string_from_array($criteria, 'select', NULL, 'sql');
+		
+		if(strlen($orderBy)) {
+			$sql .= " ORDER BY ". $orderBy;
+		}
 		
 		if(is_numeric($limit) && $limit > 0) {
 			$sql .= " LIMIT ". $limit;
@@ -813,7 +809,20 @@ abstract class dataLayerAbstract{
 	
 	//-------------------------------------------------------------------------
 	public function get_most_recent_blog() {
+		$criteria = array(
+			'blog_id'	=> $this->blogId
+		);
+		$retval = $this->get_blog_entries($criteria, 'post_timestamp DESC', 1);
+		return($retval);
 	}//end get_most_recent_blog()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function get_recent_blogs() {
+		
+	}//end get_recent_blogs()
 	//-------------------------------------------------------------------------
 	
 	
