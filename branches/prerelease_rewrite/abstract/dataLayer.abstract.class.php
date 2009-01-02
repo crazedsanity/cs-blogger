@@ -778,7 +778,7 @@ abstract class dataLayerAbstract{
 		
 		//add stuff to the SQL...
 		foreach($criteria as $field=>$value) {
-			if(!preg_match('/^[a-z]\./', $field)) {
+			if(!preg_match('/^[a-z]{1,}\./', $field)) {
 				unset($criteria[$field]);
 				$field = "be.". $field;
 				$criteria[$field] = $value;
@@ -819,7 +819,7 @@ abstract class dataLayerAbstract{
 		
 		//add stuff to the SQL...
 		foreach($criteria as $field=>$value) {
-			if(!preg_match('/^[a-z]\./', $field)) {
+			if(!preg_match('/^[a-z]{1,}\./', $field)) {
 				unset($criteria[$field]);
 				$field = "b.". $field;
 				$criteria[$field] = $value;
@@ -861,8 +861,20 @@ abstract class dataLayerAbstract{
 	
 	
 	//-------------------------------------------------------------------------
-	public function get_recent_blogs() {
+	public function get_recent_blogs($limit=5, $offset=0) {
+		if(is_numeric($limit) && $limit > 0) {
+			if(is_numeric($offset) && $offset >= 0) {
+				$retval = $this->get_blog_entries(array('blog_id'=>$this->blogId), 'post_timestamp DESC', $limit, $offset);
+			}
+			else {
+				throw new exception(__METHOD__ .": invalid offset (". $offset .")");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid limit (". $limit .")");
+		}
 		
+		return($retval);
 	}//end get_recent_blogs()
 	//-------------------------------------------------------------------------
 	

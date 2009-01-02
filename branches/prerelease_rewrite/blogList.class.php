@@ -15,7 +15,11 @@ class blogList extends dataLayerAbstract {
     function __construct($location) {
     	parent::__construct();
     	
-    	$this->validBlogs = $this->get_blogs(array('is_active'=>"t"), 'last_post_timestamp DESC');
+    	$criteria = array(
+			'is_active'=>"t",
+			'bl.blog_location'	=> $location
+		);
+    	$this->validBlogs = $this->get_blogs($criteria, 'last_post_timestamp DESC');
     }//end __construct()
 	//-------------------------------------------------------------------------
 	
@@ -38,6 +42,10 @@ class blogList extends dataLayerAbstract {
 					$this->blogs[$blogName]->initialize_locals($blogName);
 				}
 				$retval[$blogName] = $this->blogs[$blogName]->$methodName();
+				if($numPerBlog == 1) {
+					$keys = array_keys($retval[$blogName]);
+					$retval[$blogName] = $retval[$blogName][$keys[0]];
+				}
 			}
 		}
 		else {
