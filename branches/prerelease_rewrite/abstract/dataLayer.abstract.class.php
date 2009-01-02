@@ -143,7 +143,6 @@ abstract class dataLayerAbstract extends csblog_versionAbstract {
 		$retval = $this->db->exec($mySchema);
 		
 		$internalValues = $this->get_version(true);
-		$this->gfObj->debug_print($internalValues);
 		foreach($internalValues as $name=>$value) {
 			$sql = "INSERT INTO cs_blog_internal_data_table (internal_name, internal_value) " .
 					"VALUES ('". $name ."', '". $value ."')";

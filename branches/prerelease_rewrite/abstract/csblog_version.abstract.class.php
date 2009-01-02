@@ -69,7 +69,6 @@ abstract class csblog_versionAbstract {
 				else {
 					$retval = $fullVersionString;
 				}
-				$this->gfObj->debug_print($retval);
 			}
 			else {
 				throw new exception(__METHOD__ .": failed to retrieve version string");
