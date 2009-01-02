@@ -1,6 +1,7 @@
 <?php
 
 require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.php');
+require_once(dirname(__FILE__) .'/csblog_version.abstract.class.php');
 
 /**
  * TASKS:::
@@ -13,7 +14,7 @@ require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.php');
  * 		[_] Change authentication layer to just link usernames to internal user id's
  */
 
-abstract class dataLayerAbstract{
+abstract class dataLayerAbstract extends csblog_versionAbstract {
 	
 	/**  */
 	protected $gfObj;
@@ -141,11 +142,15 @@ abstract class dataLayerAbstract{
 		
 		$retval = $this->db->exec($mySchema);
 		
-		$retval = $this->db->exec("select * from cs_authentication_table");
-		if($retval <= 0) {
-			$this->db->rollbackTrans();
-			throw new exception(__METHOD__ .": no users created (". $retval ."), must have failed: ". $this->db->errorMsg());
+		$internalValues = $this->get_version(true);
+		$this->gfObj->debug_print($internalValues);
+		foreach($internalValues as $name=>$value) {
+			$sql = "INSERT INTO cs_blog_internal_data_table (internal_name, internal_value) " .
+					"VALUES ('". $name ."', '". $value ."')";
+			$this->run_sql($sql);
 		}
+		
+		$retval = 1;
 		$this->db->commitTrans();
 		return($retval);
 	}//end run_setup()

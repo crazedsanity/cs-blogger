@@ -48,6 +48,24 @@ CREATE TABLE cs_session_table (
 	ip varchar(15) NOT NULL
 );
 
+--
+-- Table for storing basic permissions.
+--
+CREATE TABLE cs_blog_permission_table (
+	blog_permission_id serial NOT NULL PRIMARY KEY,
+	blog_id integer NOT NULL REFERENCES cs_blog_table(blog_id),
+	uid integer NOT NULL REFERENCES cs_authentication_table(uid)
+);
+
+-- 
+-- Table to hold internal-only information, such as version number & such.
+-- 
+CREATE TABLE cs_blog_internal_data_table (
+	internal_data_id serial NOT NULL PRIMARY KEY,
+	internal_name text NOT NULL UNIQUE,
+	internal_value text NOT NULL
+);
+
 
 -- Add entries for users.
 --NOTE: password for "test" is "test".
