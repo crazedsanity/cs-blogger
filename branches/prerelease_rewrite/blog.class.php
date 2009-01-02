@@ -11,7 +11,7 @@ class blog extends dataLayerAbstract {
 	protected $blogDisplayName;
 	
 	/** Numeric ID of blog */
-	protected $blogId;
+	protected $blogId=false;
 	
 	/** Location of blog */
 	protected $blogLocation;
@@ -53,14 +53,18 @@ class blog extends dataLayerAbstract {
 	 * 
 	 * @param $blogName		(str) name of blog (NOT the display name)
 	 */
-	protected function initialize_locals($blogName) {
+	public function initialize_locals($blogName) {
 		
-		$data = $this->get_blog_data_by_name($blogName);
-		
-		$this->blogName			= $data['blog_name'];
-		$this->blogDisplayName	= $data['blog_display_name'];
-		$this->blogId			= $data['blog_id'];
-		$this->blogLocation		= $data['blog_location'];
+		if(!is_numeric($this->blogId)) {
+			$data = $this->get_blog_data_by_name($blogName);
+			$this->blogName			= $data['blog_name'];
+			$this->blogDisplayName	= $data['blog_display_name'];
+			$this->blogId			= $data['blog_id'];
+			$this->blogLocation		= $data['blog_location'];
+		}
+		else {
+			throw new exception(__METHOD__ .": already initialized");
+		}
 	}//end initialize_locals()
 	//-------------------------------------------------------------------------
 	
@@ -84,6 +88,18 @@ class blog extends dataLayerAbstract {
 		
 		return($retval);
 	}//end get_internal_var()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function is_initialized() {
+		$retval = false;
+		if(is_numeric($this->blogId)) {
+			$retval = true;
+		}
+		return($retval);
+	}//end is_initialized()
 	//-------------------------------------------------------------------------
 	
 	

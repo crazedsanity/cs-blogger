@@ -3,7 +3,7 @@
 
 require_once(dirname(__FILE__) .'/blog.class.php');
 
-class blogList extends blog {
+class blogList extends dataLayerAbstract {
 	
 	/** An array of blog{} objects. */
 	protected $blogObjList;
@@ -12,9 +12,10 @@ class blogList extends blog {
 	protected $blogIndex;
 	
 	//-------------------------------------------------------------------------
-    function __construct($blogName, $dbType, array $dbParams) {
+    function __construct($location) {
+    	parent::__construct();
     	
-    	$this->get_blog_list();
+    	$this->validBlogs = $this->get_blogs(array('is_active'=>"t"), 'last_post_timestamp DESC');
     }//end __construct()
 	//-------------------------------------------------------------------------
 	
@@ -25,16 +26,18 @@ class blogList extends blog {
 		if(is_array($this->validBlogs) && count($this->validBlogs)) {
 			$retval = array();
 			if(is_null($numPerBlog) || !is_numeric($numPerBlog) || $numPerBlog <= 1) {
-				foreach($this->validBlogs as $blogId=>$blogName) {
-					$this->blogs[$blogName] = new blog($blogName);
-					$retval[$blogName] = $this->blogs[$blogName]->get_most_recent_blog();
-				}
+				$methodName = 'get_most_recent_blog';
 			}
 			else {
-				foreach($this->validBlogs as $blogId=>$blogName) {
-					$this->blogs[$blogName] = new blog($blogName);
-					$retval[$blogName] = $this->blogs[$blogName]->get_recent_blogs();
+				$methodName = 'get_recent_blogs';
+			}
+			foreach($this->validBlogs as $blogId=>$blogData) {
+				$blogName = $blogData['blog_name'];
+				$this->blogs[$blogName] = new blog($blogName);
+				if(!$this->blogs[$blogName]->is_initialized()) {
+					$this->blogs[$blogName]->initialize_locals($blogName);
 				}
+				$retval[$blogName] = $this->blogs[$blogName]->$methodName();
 			}
 		}
 		else {

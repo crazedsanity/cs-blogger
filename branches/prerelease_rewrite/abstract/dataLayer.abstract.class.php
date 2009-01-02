@@ -301,7 +301,7 @@ abstract class dataLayerAbstract{
 			
 			if(is_numeric($retval) && $retval > 0) {
 				//Initialize locals now, if it hasn't been done yet.
-				if(defined('CSBLOG_SETUP_PENDING')) {
+				if(defined('CSBLOG_SETUP_PENDING') && !$this->is_initialized()) {
 					$this->initialize_locals($formattedBlogName);
 				}
 			}
@@ -780,7 +780,7 @@ abstract class dataLayerAbstract{
 		foreach($criteria as $field=>$value) {
 			if(!preg_match('/^[a-z]\./', $field)) {
 				unset($criteria[$field]);
-				$field = "b.". $field;
+				$field = "be.". $field;
 				$criteria[$field] = $value;
 			}
 		}
@@ -803,6 +803,47 @@ abstract class dataLayerAbstract{
 		
 		return($retval);
 	}//end get_blog_entries()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function get_blogs(array $criteria, $orderBy, $limit=NULL, $offset=NULL) {
+		if(!is_array($criteria) || !count($criteria)) {
+			throw new exception(__METHOD__ .": invalid criteria");
+		}
+		
+		//TODO: should be specifically limited to blogs that are accessible to current user.
+		$sql = "SELECT b.*, bl.blog_location FROM cs_blog_table AS b INNER JOIN " .
+				"cs_blog_location_table AS bl ON (b.blog_location_id=bl.blog_location_id) WHERE ";
+		
+		//add stuff to the SQL...
+		foreach($criteria as $field=>$value) {
+			if(!preg_match('/^[a-z]\./', $field)) {
+				unset($criteria[$field]);
+				$field = "b.". $field;
+				$criteria[$field] = $value;
+			}
+		}
+		$sql .= $this->gfObj->string_from_array($criteria, 'select', NULL, 'sql');
+		
+		if(strlen($orderBy)) {
+			$sql .= " ORDER BY ". $orderBy;
+		}
+		
+		if(is_numeric($limit) && $limit > 0) {
+			$sql .= " LIMIT ". $limit;
+		}
+		if(is_numeric($offset) && $limit > 0) {
+			$sql .= " OFFSET ". $offset;
+		}
+		
+		$numrows = $this->run_sql($sql);
+		
+		$retval = $this->db->farray_fieldnames('blog_id');
+		
+		return($retval);
+	}//end get_blogs()
 	//-------------------------------------------------------------------------
 	
 	
