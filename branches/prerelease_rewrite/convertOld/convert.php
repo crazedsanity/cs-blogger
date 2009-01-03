@@ -56,7 +56,6 @@ class tmpConverter extends dataLayerAbstract {
 		$this->gfObj->debugPrintOpt = 1;
 		
 		parent::__construct($newDbParms);
-		$this->connect_db();
 		$this->db->beginTrans();
 	}//end __construct()
 	//-------------------------------------------------------------------------
@@ -115,7 +114,7 @@ class tmpConverter extends dataLayerAbstract {
 					"database error::: ". $dberror);
 		}
 		
-		$this->gfObj->debug_print(__METHOD__ .": finished, returning (". $retval .")");
+		$this->gfObj->debug_print(__METHOD__ .": converted ". $retval ." users");
 		
 		return($retval);
 		
@@ -133,15 +132,56 @@ class tmpConverter extends dataLayerAbstract {
 		return($timestamp);
 	}//end fix_timestamp()
 	//-------------------------------------------------------------------------
-
-
-
+	
+	
+		
+	//-------------------------------------------------------------------------
+	public function run_conversion() {
+		$this->convert_blogs();
+	}//end run_conversion()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	private function convert_blogs() {
+		//retrieve the list of old blogs.
+		$numrows = $this->oldDb->exec("SELECT * FROM cs_blog_table");
+		$dberror = $this->oldDb->errorMsg();
+		
+		if($numrows > 0 && !strlen($dberror)) {
+			$data = $this->oldDb->farray_fieldnames('blog_id', true);
+			
+			$blogsCreated = 0;
+			foreach($data as $blogId=>$blogData) {
+				$newBlogId = $this->create_blog($blogData['blog_name'], $blogData['uid'], $blogData['location']);
+				$blogsCreated++;
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": unable to retrieve list of existing blogs");
+		}
+		
+		if($blogsCreated == count($data)) {
+			$retval = $blogsCreated;
+		}
+		else {
+			throw new exception(__METHOD__ .": failed to create all blogs");
+		}
+		
+		$this->gfObj->debug_print(__METHOD__ .": finished, converted ". $retval ." blogs");
+		
+		return($retval);
+		
+	}//end convert_blogs()
+	//-------------------------------------------------------------------------
 	
 }//end converter{}
 
 $obj = new tmpConverter($newDbParams, $oldDbParams);
 $obj->run_setup();
 $obj->convert_users('cs_authentication_table');
+$obj->run_conversion();
 
 
 ?>
