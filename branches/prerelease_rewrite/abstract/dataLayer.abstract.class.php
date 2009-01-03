@@ -53,37 +53,42 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	
 	//-------------------------------------------------------------------------
 	protected function connect_db() {
-		if(is_array($this->dbParams)) {
-			$this->db = new cs_phpDB('pgsql');
-			$this->db->connect($this->dbParams);
+		if($this->isConnected === false) {
+			if(is_array($this->dbParams)) {
+				$this->db = new cs_phpDB('pgsql');
+				$this->db->connect($this->dbParams);
+				
+				//NOTE: if the call to "connect()" fails, it should throw an exception.
+				$this->isConnected=true;
+			}
+			else {
+				//no parameters passed.  Try using constants.
 			
-			//NOTE: if the call to "connect()" fails, it should throw an exception.
-			$this->isConnected=true;
+				$constantList = array(
+					'CSBLOG_DB_HOST'		=> 'host',
+					'CSBLOG_DB_PORT'		=> 'port',
+					'CSBLOG_DB_DBNAME'		=> 'dbname',
+					'CSBLOG_DB_USER'		=> 'user',
+					'CSBLOG_DB_PASSWORD'	=> 'password'
+				);
+				
+				$dbParams = array();
+				foreach($constantList as $constant=>$index) {
+					$value = '';
+					if(defined($constant)) {
+						$value = constant($constant);
+					}
+					$dbParams[$index] = $value;
+				}
+				$this->db = new cs_phpDB('pgsql');
+				$this->db->connect($dbParams);
+				
+				//NOTE: if the call to "connect()" fails, it should throw an exception.
+				$this->isConnected = true;
+			}
 		}
 		else {
-			//no parameters passed.  Try using constants.
-		
-			$constantList = array(
-				'CSBLOG_DB_HOST'		=> 'host',
-				'CSBLOG_DB_PORT'		=> 'port',
-				'CSBLOG_DB_DBNAME'		=> 'dbname',
-				'CSBLOG_DB_USER'		=> 'user',
-				'CSBLOG_DB_PASSWORD'	=> 'password'
-			);
-			
-			$dbParams = array();
-			foreach($constantList as $constant=>$index) {
-				$value = '';
-				if(defined($constant)) {
-					$value = constant($constant);
-				}
-				$dbParams[$index] = $value;
-			}
-			$this->db = new cs_phpDB('pgsql');
-			$this->db->connect($dbParams);
-			
-			//NOTE: if the call to "connect()" fails, it should throw an exception.
-			$this->isConnected = true;
+			$this->gfObj->debug_print(__METHOD__ .": already connected");
 		}
 	}//end connect_db()
 	//-------------------------------------------------------------------------
