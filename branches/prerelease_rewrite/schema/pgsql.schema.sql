@@ -7,7 +7,8 @@ CREATE TABLE cs_authentication_table (
 	passwd varchar(32),
 	is_active boolean DEFAULT true NOT NULL,
 	date_created date DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	last_login timestamp with time zone
+	last_login timestamp with time zone,
+	email text
 );
 CREATE TABLE cs_blog_location_table (
 	blog_location_id serial NOT NULL PRIMARY KEY,

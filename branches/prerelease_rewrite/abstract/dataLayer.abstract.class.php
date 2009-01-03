@@ -22,6 +22,11 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	/**  */
 	private $isConnected=false;
 	
+	/**  */
+	private $dbParams;
+	
+	const DBTYPE='pgsql';
+	
 	//-------------------------------------------------------------------------
 	/**
 	 * Constructor (must be called from extending class)
@@ -31,7 +36,6 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	 */
    	function __construct(array $dbParams=NULL) {
 		$this->set_version_file_location(dirname(__FILE__) . '/../VERSION');
-   		$this->connect_db($dbParams);
 		$this->gfObj = new cs_globalFunctions();
 		$this->gfObj->debugPrintOpt=1;
 		
@@ -39,16 +43,19 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		if(!defined('CSBLOG_TITLE_MINLEN')) {
 			define('CSBLOG_TITLE_MINLEN', 4);
 		}
+		
+		$this->dbParams = $dbParams;
+   		$this->connect_db();
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
 	
 	
 	//-------------------------------------------------------------------------
-	protected function connect_db(array $dbParams=NULL) {
-		if(is_array($dbParams)) {
+	protected function connect_db() {
+		if(is_array($this->dbParams)) {
 			$this->db = new cs_phpDB('pgsql');
-			$this->db->connect($dbParams);
+			$this->db->connect($this->dbParams);
 			
 			//NOTE: if the call to "connect()" fails, it should throw an exception.
 			$this->isConnected=true;
@@ -136,10 +143,10 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	 */
 	public function run_setup() {
 		$retval = false;
-		//PostgreSQL (or MySQL?)
+		$this->connect_db();
 		$this->db->beginTrans();
 		$fs = new cs_fileSystemClass(dirname(__FILE__) .'/../schema');
-		$mySchema = $fs->read(CSBLOG__DBTYPE .'.schema.sql');
+		$mySchema = $fs->read(self::DBTYPE .'.schema.sql');
 		
 		$retval = $this->db->exec($mySchema);
 		

@@ -9,6 +9,7 @@ require_once(dirname(__FILE__) .'/../../siteConfig.php');
 require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.php');
 require_once(dirname(__FILE__) .'/../../cs-content/cs_globalFunctions.php');
 require_once(dirname(__FILE__) .'/../../cs-content/cs_fileSystemClass.php');
+require_once(dirname(__FILE__) .'/../abstract/dataLayer.abstract.class.php');
 
 
 
@@ -25,22 +26,23 @@ $newDbParams = array(
 	'password'	=> ""
 );
 
+// LOOK TO THE BOTTOM FOR ACTUAL CODE....
 
-$obj = new converter($newDbParams, $oldDbParams);
 
-class converter {
+//=============================================================================
+//=============================================================================
+//=============================================================================
+//=============================================================================
+class tmpConverter extends dataLayerAbstract {
 	
 	/** Connection to the old SQLite database */
 	private $oldDb;
-	
-	/** Connection to the new PostgreSQL database */
-	private $newDb;
 	
 	/** Object to interact with the filesystem. */
 	private $fsObj;
 	
 	/** cs_globalFunctions{} object. */
-	private $gfObj;
+	protected $gfObj;
 	
 	
 	//-------------------------------------------------------------------------
@@ -48,15 +50,98 @@ class converter {
 		$this->oldDb = new cs_phpDB('sqlite');
 		$this->oldDb->connect($oldDbParms);
 		
-		$this->newDb = new cs_phpDB('pgsql');
-		$this->newDb->connect($newDbParms);
-		
 		$this->fsObj = new cs_fileSystemClass($oldDbParms['rwDir']);
 		
 		$this->gfObj = new cs_globalFunctions;
 		$this->gfObj->debugPrintOpt = 1;
+		
+		parent::__construct($newDbParms);
+		$this->connect_db();
+		$this->db->beginTrans();
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
+	
+	
+	//-------------------------------------------------------------------------
+	/**
+	 * Convert users from the old blog database to the new one.  This isn't
+	 * specifically called during the normal conversion, as users might already 
+	 * exist in the new database.
+	 * 
+	 * NOTE::: users in the new database would have to have the same uid's as 
+	 * those in the old database in order for this to work (running an update on 
+	 * the old database, maybe in a transaction, would probably do the trick).
+	 */
+	public function convert_users($newTable) {
+		//retrieve a list of users.
+		$numrows = $this->oldDb->exec("SELECT * FROM cs_authentication_table");
+		$dberror = $this->oldDb->errorMsg();
+		
+		if($numrows > 0 && !strlen($dberror)) {
+			$convertUsers = $this->oldDb->farray_fieldnames('uid', true, false);
+			
+			$this->db->beginTrans();
+			$createdUsers = 0;
+			foreach($convertUsers as $uid=>$userData) {
+				//make the date for last_login properly formatted.
+				$userData['last_login'] = $this->fix_timestamp($userData['last_login']);
+				
+				$sql = "INSERT INTO ". $newTable ." ". 
+					$this->gfObj->string_from_array($userData, 'insert', null, 'sql_insert');
+				
+				$numrows = $this->db->exec($sql);
+				$dberror = $this->db->errorMsg();
+				
+				if($numrows == 1 && !strlen($dberror)) {
+					$createdUsers++;
+				}
+				else {
+					throw new exception(__METHOD__ .": failed to add user with uid=(". $uid ."), " .
+							"invalid numrows (". $numrows .") or dberror::: ". $dberror );
+				}
+			}
+			
+			if($createdUsers == count($convertUsers)) {
+				$retval = $createdUsers;
+			}
+			else {
+				$this->db->rollbackTrans();
+				throw new exception(__METHOD__ .": failed to create all users!");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": failed to retrieve any users (". $numrows .") or " .
+					"database error::: ". $dberror);
+		}
+		
+		$this->gfObj->debug_print(__METHOD__ .": finished, returning (". $retval .")");
+		
+		return($retval);
+		
+	}//end convert_users()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function fix_timestamp($timestamp) {
+		$dateBits = getdate($timestamp);
+		$timestamp = $dateBits['year'] ."-". $dateBits['mon'] ."-". $dateBits['mday'] 
+			." ". $dateBits['hours'] .":". $dateBits['minutes'] .":". $dateBits['seconds'];
+		
+		return($timestamp);
+	}//end fix_timestamp()
+	//-------------------------------------------------------------------------
+
+
+
+	
 }//end converter{}
+
+$obj = new tmpConverter($newDbParams, $oldDbParams);
+$obj->run_setup();
+$obj->convert_users('cs_authentication_table');
+
+
 ?>
