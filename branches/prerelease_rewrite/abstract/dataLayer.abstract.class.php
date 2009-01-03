@@ -1,7 +1,7 @@
 <?php
 
 require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.php');
-require_once(dirname(__FILE__) .'/csblog_version.abstract.class.php');
+require_once(dirname(__FILE__) .'/../../cs-versionparse/cs_version.abstract.class.php');
 
 /**
  * TASKS:::
@@ -14,7 +14,7 @@ require_once(dirname(__FILE__) .'/csblog_version.abstract.class.php');
  * 		[_] Change authentication layer to just link usernames to internal user id's
  */
 
-abstract class dataLayerAbstract extends csblog_versionAbstract {
+abstract class dataLayerAbstract extends cs_versionAbstract {
 	
 	/**  */
 	protected $gfObj;
@@ -30,6 +30,7 @@ abstract class dataLayerAbstract extends csblog_versionAbstract {
 	 * @param $dbParams	(array) list of connection parameters for selected db.
 	 */
    	function __construct(array $dbParams=NULL) {
+		$this->set_version_file_location(dirname(__FILE__) . '/../VERSION');
    		$this->connect_db($dbParams);
 		$this->gfObj = new cs_globalFunctions();
 		$this->gfObj->debugPrintOpt=1;
