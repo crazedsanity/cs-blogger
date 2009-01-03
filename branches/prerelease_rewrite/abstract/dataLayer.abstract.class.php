@@ -118,7 +118,6 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 				}
 				else {
 					$this->gfObj->debug_print($this->db);
-					cs_debug_backtrace(1);
 					throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to run SQL... DBERROR: ". $dberror);
 				}
 				
@@ -253,7 +252,6 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 			}
 		}
 		else {
-			cs_debug_backtrace(1);
 			throw new exception(__METHOD__ .": invalid data for username (". $username .")");
 		}
 		
@@ -893,6 +891,35 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		
 		return($retval);
 	}//end get_recent_blogs()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function add_permission($blogId, $toUser) {
+		if(!is_numeric($toUser) && is_string($toUser) && strlen($toUser)) {
+			$toUser = $this->get_uid($toUser);
+		}
+		
+		if(is_numeric($toUser) && $toUser > 0 && is_numeric($blogId) && $blogId > 0) {
+			$this->db->beginTrans();
+			$sql = "INSERT INTO cs_blog_permission_table (blog_id, uid) VALUES " .
+					"(". $blogId .", ". $toUser .")";
+			$numrows = $this->run_sql($sql);
+			
+			if($numrows == 1) {
+				$retval = $this->db->get_currval('cs_blog_permission_table_blog_permission_id_seq');
+			}
+			else {
+				throw new exception(__METHOD__ .": invalid numrows (". $numrows .")");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid uid (". $toUser .") or blogId (". $blogId .")");
+		}
+		
+		return($retval);
+	}//end add_permission()
 	//-------------------------------------------------------------------------
 	
 	

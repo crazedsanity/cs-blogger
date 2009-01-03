@@ -138,6 +138,7 @@ class tmpConverter extends dataLayerAbstract {
 	//-------------------------------------------------------------------------
 	public function run_conversion() {
 		$this->convert_blogs();
+		$this->convert_permissions();
 	}//end run_conversion()
 	//-------------------------------------------------------------------------
 	
@@ -174,6 +175,40 @@ class tmpConverter extends dataLayerAbstract {
 		return($retval);
 		
 	}//end convert_blogs()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	private function convert_permissions() {
+		//retrieve the old permissions.
+		$numrows = $this->oldDb->exec("SELECT * FROM cs_blog_access_table");
+		$dberror = $this->oldDb->errorMsg();
+		
+		if($numrows > 0 && !strlen($dberror)) {
+			$data = $this->oldDb->farray_fieldnames('blog_access_id', true);
+			
+			$numPerms = 0;
+			foreach($data as $blogAccessId => $permData) {
+				$res = $this->add_permission($permData['blog_id'], $permData['uid']);
+				$numPerms++;
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": failed to get data (". $numrows .") or database error::: ". $dberror);
+		}
+		
+		if($numPerms == count($data)) {
+			$retval = $numPerms;
+		}
+		else {
+			throw new exception(__METHOD__ .": failed to restore all permissions");
+		}
+		
+		$this->gfObj->debug_print(__METHOD__ .": finished, converted ". $retval ." permission records");
+		
+		return($retval);
+	}//end convert_permissions()
 	//-------------------------------------------------------------------------
 	
 }//end converter{}
