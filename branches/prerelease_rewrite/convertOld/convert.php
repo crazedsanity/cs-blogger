@@ -139,6 +139,7 @@ class tmpConverter extends dataLayerAbstract {
 	public function run_conversion() {
 		$this->convert_blogs();
 		$this->convert_permissions();
+		$this->convert_entries();
 	}//end run_conversion()
 	//-------------------------------------------------------------------------
 	
@@ -209,6 +210,25 @@ class tmpConverter extends dataLayerAbstract {
 		
 		return($retval);
 	}//end convert_permissions()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	private function convert_entries() {
+		//retrieve the list of entries from the database.
+		$numrows = $this->oldDb->exec("SELECT * FROM cs_blog_entry_table");
+		$dberror = $this->oldDb->errorMsg();
+		
+		if($numrows > 0 && !strlen($dberror)) {
+			$data = $this->oldDb->farray_fieldnames('blog_entry_id', true);
+			
+			$this->gfObj->debug_print(__METHOD__ .": retrieved (". $numrows .") records... TODO: CONVERT THEM");
+		}
+		else {
+			throw new exception(__METHOD__ .": failed to retrieve any entries (". $numrows .") or dberror::: ". $dberror);
+		}
+	}//end convert_entries()
 	//-------------------------------------------------------------------------
 	
 }//end converter{}
