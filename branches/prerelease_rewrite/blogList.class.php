@@ -17,7 +17,7 @@ class blogList extends dataLayerAbstract {
     	
     	$criteria = array(
 			'is_active'=>"t",
-			'bl.blog_location'	=> $location
+			'bl.location'	=> $location
 		);
     	$this->validBlogs = $this->get_blogs($criteria, 'last_post_timestamp DESC');
     }//end __construct()

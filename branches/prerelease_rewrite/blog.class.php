@@ -60,7 +60,7 @@ class blog extends dataLayerAbstract {
 			$this->blogName			= $data['blog_name'];
 			$this->blogDisplayName	= $data['blog_display_name'];
 			$this->blogId			= $data['blog_id'];
-			$this->blogLocation		= $data['blog_location'];
+			$this->blogLocation		= $data['location'];
 		}
 		else {
 			throw new exception(__METHOD__ .": already initialized");

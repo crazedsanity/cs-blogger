@@ -10,29 +10,29 @@ CREATE TABLE cs_authentication_table (
 	last_login timestamp with time zone,
 	email text
 );
-CREATE TABLE cs_blog_location_table (
-	blog_location_id serial NOT NULL PRIMARY KEY,
-	blog_location text NOT NULL UNIQUE
+CREATE TABLE csblog_location_table (
+	location_id serial NOT NULL PRIMARY KEY,
+	location text NOT NULL UNIQUE
 );
-create table cs_blog_table (
+create table csblog_blog_table (
 	blog_id serial NOT NULL PRIMARY KEY,
 	uid integer NOT NULL REFERENCES cs_authentication_table(uid),
 	blog_name text NOT NULL,
 	blog_display_name text NOT NULL,
 	--blog_location text NOT NULL,
-	blog_location_id integer NOT NULL REFERENCES cs_blog_location_table(blog_location_id),
+	location_id integer NOT NULL REFERENCES csblog_location_table(location_id),
 	is_active boolean NOT NULL DEFAULT true,
 	last_post_timestamp timestamp without time zone
 );
 
-CREATE TABLE cs_blog_access_table (
-	blog_access_id serial NOT NULL PRIMARY KEY,
-	blog_id integer NOT NULL REFERENCES cs_blog_table(blog_id),
+CREATE TABLE csblog_access_table (
+	access_id serial NOT NULL PRIMARY KEY,
+	blog_id integer NOT NULL REFERENCES csblog_blog_table(blog_id),
 	uid integer NOT NULL REFERENCES cs_authentication_table(uid)
 );
-CREATE TABLE cs_blog_entry_table (
-	blog_entry_id serial NOT NULL PRIMARY KEY,
-	blog_id integer NOT NULL REFERENCES cs_blog_table(blog_id),
+CREATE TABLE csblog_entry_table (
+	entry_id serial NOT NULL PRIMARY KEY,
+	blog_id integer NOT NULL REFERENCES csblog_blog_table(blog_id),
 	author_uid integer NOT NULL REFERENCES cs_authentication_table(uid),
 	create_date timestamp NOT NULL DEFAULT NOW(),
 	content text NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE cs_blog_entry_table (
 	permalink text NOT NULL,
 	title text NOT NULL
 );
-CREATE UNIQUE INDEX cs_blog_entry_table_permalink_blog_id_uidx ON cs_blog_entry_table USING btree (permalink,blog_id);
+CREATE UNIQUE INDEX csblog_entry_table_permalink_blog_id_uidx ON csblog_entry_table USING btree (permalink,blog_id);
 
 
 CREATE TABLE cs_session_table (
@@ -55,16 +55,16 @@ CREATE TABLE cs_session_table (
 --
 -- Table for storing basic permissions.
 --
-CREATE TABLE cs_blog_permission_table (
-	blog_permission_id serial NOT NULL PRIMARY KEY,
-	blog_id integer NOT NULL REFERENCES cs_blog_table(blog_id),
+CREATE TABLE csblog_permission_table (
+	permission_id serial NOT NULL PRIMARY KEY,
+	blog_id integer NOT NULL REFERENCES csblog_blog_table(blog_id),
 	uid integer NOT NULL REFERENCES cs_authentication_table(uid)
 );
 
 -- 
 -- Table to hold internal-only information, such as version number & such.
 -- 
-CREATE TABLE cs_blog_internal_data_table (
+CREATE TABLE csblog_internal_data_table (
 	internal_data_id serial NOT NULL PRIMARY KEY,
 	internal_name text NOT NULL UNIQUE,
 	internal_value text NOT NULL

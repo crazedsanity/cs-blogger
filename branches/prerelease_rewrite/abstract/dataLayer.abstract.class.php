@@ -117,7 +117,6 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 					$retval = $numrows;
 				}
 				else {
-					$this->gfObj->debug_print($this->db);
 					throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to run SQL... DBERROR: ". $dberror);
 				}
 				
@@ -156,7 +155,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		
 		$internalValues = $this->get_version(true);
 		foreach($internalValues as $name=>$value) {
-			$sql = "INSERT INTO cs_blog_internal_data_table (internal_name, internal_value) " .
+			$sql = "INSERT INTO csblog_internal_data_table (internal_name, internal_value) " .
 					"VALUES ('". $name ."', '". $value ."')";
 			$this->run_sql($sql);
 		}
@@ -296,12 +295,12 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		}
 		
 		$formattedBlogName = $this->create_permalink_from_title($blogName);
-		$sql = "INSERT INTO cs_blog_table ". $this->gfObj->string_from_array(
+		$sql = "INSERT INTO csblog_blog_table ". $this->gfObj->string_from_array(
 			array(
 				'blog_display_name'		=> $blogName,
 				'blog_name'				=> $formattedBlogName,
 				'uid'					=> $owner,
-				'blog_location_id'		=> $locationId
+				'location_id'			=> $locationId
 			),
 			'insert',
 			NULL,
@@ -312,7 +311,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		
 		if($numrows == 1) {
 			//pull the blogId.
-			$retval = $this->db->get_currval('cs_blog_table_blog_id_seq');
+			$retval = $this->db->get_currval('csblog_blog_table_blog_id_seq');
 			
 			if(is_numeric($retval) && $retval > 0) {
 				//Initialize locals now, if it hasn't been done yet.
@@ -414,15 +413,16 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		$sqlArr['content'] = $this->encode_content($content);
 		
 		//build the SQL statement.
-		$sql = "INSERT iNTO cs_blog_entry_table ". $this->gfObj->string_from_array($sqlArr, 'insert', NULL, $cleanStringArr);
+		$sql = "INSERT INTO csblog_entry_table ". $this->gfObj->string_from_array($sqlArr, 'insert', NULL, $cleanStringArr);
 		
 		//run the statement & check the output.
 		$numrows = $this->run_sql($sql);
 		
 		if(is_numeric($numrows) && $numrows == 1) {
+			$blogData = $this->get_blog_data_by_id($blogId);
 			$retval = array(
-				'blog_entry_id'		=> $this->db->get_currval('cs_blog_entry_table_blog_entry_id_seq'),
-				'full_permalink'	=> $this->blogLocation ."/". $sqlArr['permalink']
+				'entry_id'		=> $this->db->get_currval('csblog_entry_table_entry_id_seq'),
+				'full_permalink'	=> $blogData['location'] ."/". $sqlArr['permalink']
 			);
 		}
 		else {
@@ -524,10 +524,10 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 			$location = preg_replace('/'. $permalink .'$/', '', $fullPermalink);
 			$location = preg_replace('/\/+$/', '', $location);
 			
-			$sql = "SELECT be.*, bl.blog_location FROM cs_blog_entry_table AS be INNER JOIN cs_blog_table AS b " .
-					"ON (be.blog_id=b.blog_id) INNER JOIN cs_blog_location_table AS bl ON " .
-					"(b.blog_location_id=bl.blog_location_id) " .
-					"WHERE bl.blog_location='". $location ."' AND be.permalink='". $permalink ."'";
+			$sql = "SELECT be.*, bl.location FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b " .
+					"ON (be.blog_id=b.blog_id) INNER JOIN csblog_location_table AS bl ON " .
+					"(b.location_id=bl.location_id) " .
+					"WHERE bl.location='". $location ."' AND be.permalink='". $permalink ."'";
 			
 			$numrows = $this->run_sql($sql);
 			
@@ -570,8 +570,8 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	public function get_blog_data_by_name($blogName) {
 		if(strlen($blogName) > 3) {
 			$blogName = $this->gfObj->cleanString($this->create_permalink_from_title($blogName), 'sql');
-			$sql = "SELECT b.*, bl.blog_location FROM cs_blog_table AS b INNER JOIN " .
-					"cs_blog_location_table AS bl USING (blog_location_id) WHERE blog_name='". $blogName ."'";
+			$sql = "SELECT b.*, bl.location FROM csblog_blog_table AS b INNER JOIN " .
+					"csblog_location_table AS bl USING (location_id) WHERE blog_name='". $blogName ."'";
 			
 			$numrows = $this->run_sql($sql);
 			
@@ -603,7 +603,8 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	 */
 	public function get_blog_data_by_id($blogId) {
 		if(is_numeric($blogId) && $blogId > 0) {
-			$sql = "SELECT * FROM cs_blog_table WHERE blog_id=". $blogId;
+			$sql = "SELECT b.*, bl.location FROM csblog_blog_table AS b INNER JOIN csblog_location_table " .
+					"as bl ON (bl.location_id=b.location_id) WHERE b.blog_id=". $blogId;
 			
 			$numrows = $this->run_sql($sql);
 			
@@ -628,7 +629,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	/**
 	 * Updates a single entry (within a transaction)
 	 * 
-	 * @param $blogEntryId		(int) blog_entry_id to update.
+	 * @param $blogEntryId		(int) entry_id to update.
 	 * @param $updates			(array) array of field=>value updates
 	 * 
 	 * @return exception		throws exception on error.
@@ -648,8 +649,8 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 					$updateThis['content'] = $this->encode_content($updateThis['content']);
 				}
 				
-				$sql = "UPDATE cs_blog_entry_table SET ". $this->gfObj->string_from_array($updateThis, 'update', NULL, $validFields)
-					." WHERE blog_entry_id=". $blogEntryId;
+				$sql = "UPDATE csblog_entry_table SET ". $this->gfObj->string_from_array($updateThis, 'update', NULL, $validFields)
+					." WHERE entry_id=". $blogEntryId;
 				
 				$this->db->beginTrans();
 				$numrows = $this->run_sql($sql);
@@ -693,7 +694,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		if(is_string($permalink) && strlen($permalink) >= CSBLOG_TITLE_MINLEN && is_numeric($blogId) && $blogId > 0) {
 			#if($permalink == $this->create_permalink_from_title($permalink)) {
 			$permalink = $this->create_permalink_from_title($permalink);
-			$sql = "SELECT * FROM cs_blog_entry_table WHERE blog_id=". $blogId 
+			$sql = "SELECT * FROM csblog_entry_table WHERE blog_id=". $blogId 
 				." AND permalink='". $permalink ."' OR permalink LIKE '". $permalink ."-%'";
 			
 			$numrows = $this->run_sql($sql, false);
@@ -728,12 +729,12 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	public function add_location($location) {
 		if(is_string($location) && strlen($location) > 3) {
 			$location = $this->gfObj->cleanString($location, "sql_insert");
-			$numrows = $this->run_sql("INSERT INTO cs_blog_location_table (blog_location) " .
+			$numrows = $this->run_sql("INSERT INTO csblog_location_table (location) " .
 					"VALUES ('". $location ."')");
 			
 			if($numrows == 1) {
 				//okay, retrieve the id inserted.
-				$retval = $this->db->get_currval('cs_blog_location_table_blog_location_id_seq');
+				$retval = $this->db->get_currval('csblog_location_table_location_id_seq');
 			}
 			else {
 				throw new exception(__METHOD__ .": failed to create location (". $location ."), " .
@@ -754,8 +755,8 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	public function get_location_id($location) {
 		if(is_string($location) && strlen($location) > 3) {
 			$location = $this->gfObj->cleanString($location, "sql_insert");
-			$sql = "SELECT blog_location_id FROM cs_blog_location_table " .
-					"WHERE blog_location='". $location ."'";
+			$sql = "SELECT location_id FROM csblog_location_table " .
+					"WHERE location='". $location ."'";
 			$numrows = $this->run_sql($sql, false);
 			
 			if($numrows == 0) {
@@ -787,9 +788,9 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		}
 		
 		//TODO: should be specifically limited to blogs that are accessible to current user.
-		$sql = "SELECT be.*, bl.blog_location FROM cs_blog_entry_table AS be INNER JOIN " .
-				"cs_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN " .
-				"cs_blog_location_table AS bl ON (b.blog_location_id=bl.blog_location_id) WHERE ";
+		$sql = "SELECT be.*, bl.location FROM csblog_entry_table AS be INNER JOIN " .
+				"csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN " .
+				"csblog_location_table AS bl ON (b.location_id=bl.location_id) WHERE ";
 		
 		//add stuff to the SQL...
 		foreach($criteria as $field=>$value) {
@@ -814,7 +815,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		
 		$numrows = $this->run_sql($sql);
 		
-		$retval = $this->db->farray_fieldnames('blog_entry_id');
+		$retval = $this->db->farray_fieldnames('entry_id');
 		
 		return($retval);
 	}//end get_blog_entries()
@@ -829,8 +830,8 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		}
 		
 		//TODO: should be specifically limited to blogs that are accessible to current user.
-		$sql = "SELECT b.*, bl.blog_location FROM cs_blog_table AS b INNER JOIN " .
-				"cs_blog_location_table AS bl ON (b.blog_location_id=bl.blog_location_id) WHERE ";
+		$sql = "SELECT b.*, bl.location FROM csblog_blog_table AS b INNER JOIN " .
+				"csblog_location_table AS bl ON (b.location_id=bl.location_id) WHERE ";
 		
 		//add stuff to the SQL...
 		foreach($criteria as $field=>$value) {
@@ -903,12 +904,12 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		
 		if(is_numeric($toUser) && $toUser > 0 && is_numeric($blogId) && $blogId > 0) {
 			$this->db->beginTrans();
-			$sql = "INSERT INTO cs_blog_permission_table (blog_id, uid) VALUES " .
+			$sql = "INSERT INTO csblog_permission_table (blog_id, uid) VALUES " .
 					"(". $blogId .", ". $toUser .")";
 			$numrows = $this->run_sql($sql);
 			
 			if($numrows == 1) {
-				$retval = $this->db->get_currval('cs_blog_permission_table_blog_permission_id_seq');
+				$retval = $this->db->get_currval('csblog_permission_table_permission_id_seq');
 			}
 			else {
 				throw new exception(__METHOD__ .": invalid numrows (". $numrows .")");
