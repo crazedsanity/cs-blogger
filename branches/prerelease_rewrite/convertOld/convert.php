@@ -50,7 +50,7 @@ class tmpConverter extends dataLayerAbstract {
 		$this->oldDb = new cs_phpDB('sqlite');
 		$this->oldDb->connect($oldDbParms);
 		
-		$this->fsObj = new cs_fileSystemClass($oldDbParms['rwDir']);
+		$this->fsObj = new cs_fileSystemClass(constant('CS_BLOGRWDIR'));
 		
 		$this->gfObj = new cs_globalFunctions;
 		$this->gfObj->debugPrintOpt = 1;
@@ -223,11 +223,38 @@ class tmpConverter extends dataLayerAbstract {
 		if($numrows > 0 && !strlen($dberror)) {
 			$data = $this->oldDb->farray_fieldnames('blog_entry_id', true);
 			
-			$this->gfObj->debug_print(__METHOD__ .": retrieved (". $numrows .") records... TODO: CONVERT THEM");
+			#$this->gfObj->debug_print(__METHOD__ .": retrieved (". $numrows .") records... TODO: CONVERT THEM");
+			
+			$numCreated = 0;
+			foreach($data as $entryId=>$entryData) {
+				$entryText = $this->fsObj->read($entryData['permalink'] .'.blog');
+				
+				//we've got everything; create the entry.
+				$result = $this->create_entry(
+					$entryData['blog_id'],
+					$entryData['author_uid'],
+					$entryData['title'],
+					$entryText,
+					array('post_timestamp'	=> $this->fix_timestamp($entryData['post_timestamp']))
+				);
+				$numCreated++;
+			}
 		}
 		else {
 			throw new exception(__METHOD__ .": failed to retrieve any entries (". $numrows .") or dberror::: ". $dberror);
 		}
+		
+		if($numCreated == count($data)) {
+			$retval = $numCreated;
+		}
+		else {
+			$this->rollbackTrans();
+			throw new exception(__METHOD__ .": failed to convert all records");
+		}
+		
+		$this->gfObj->debug_print(__METHOD__ .": finished, converted ". $retval ." records");
+		
+		return($retval);
 	}//end convert_entries()
 	//-------------------------------------------------------------------------
 	

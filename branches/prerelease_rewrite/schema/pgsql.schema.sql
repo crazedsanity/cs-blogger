@@ -37,9 +37,12 @@ CREATE TABLE cs_blog_entry_table (
 	create_date timestamp NOT NULL DEFAULT NOW(),
 	content text NOT NULL,
 	post_timestamp timestamp NOT NULL DEFAULT NOW(),
-	permalink text NOT NULL UNIQUE,
+	permalink text NOT NULL,
 	title text NOT NULL
 );
+CREATE UNIQUE INDEX cs_blog_entry_table_permalink_blog_id_uidx ON cs_blog_entry_table USING btree (permalink,blog_id);
+
+
 CREATE TABLE cs_session_table (
 	session_id character varying(32) NOT NULL PRIMARY KEY,
 	uid integer NOT NULL REFERENCES cs_authentication_table(uid),
