@@ -909,9 +909,11 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 			$numrows = $this->run_sql($sql);
 			
 			if($numrows == 1) {
+				$this->db->commitTrans();
 				$retval = $this->db->get_currval('csblog_permission_table_permission_id_seq');
 			}
 			else {
+				$this->db->rollbackTrans();
 				throw new exception(__METHOD__ .": invalid numrows (". $numrows .")");
 			}
 		}

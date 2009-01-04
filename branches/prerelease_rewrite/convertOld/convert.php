@@ -56,7 +56,6 @@ class tmpConverter extends dataLayerAbstract {
 		$this->gfObj->debugPrintOpt = 1;
 		
 		parent::__construct($newDbParms);
-		$this->db->beginTrans();
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
@@ -80,7 +79,6 @@ class tmpConverter extends dataLayerAbstract {
 		if($numrows > 0 && !strlen($dberror)) {
 			$convertUsers = $this->oldDb->farray_fieldnames('uid', true, false);
 			
-			$this->db->beginTrans();
 			$createdUsers = 0;
 			foreach($convertUsers as $uid=>$userData) {
 				//make the date for last_login properly formatted.
@@ -261,9 +259,13 @@ class tmpConverter extends dataLayerAbstract {
 }//end converter{}
 
 $obj = new tmpConverter($newDbParams, $oldDbParams);
+$obj->db->beginTrans();
 $obj->run_setup();
 $obj->convert_users('cs_authentication_table');
 $obj->run_conversion();
+$obj->db->commitTrans();
+$gf=new cs_globalFunctions;
+$gf->debug_print($obj->db,1);
 
 
 ?>
