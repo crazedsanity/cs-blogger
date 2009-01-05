@@ -23,7 +23,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	private $isConnected=false;
 	
 	/**  */
-	private $dbParams;
+	protected $dbParams;
 	
 	const DBTYPE='pgsql';
 	
@@ -788,7 +788,8 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		}
 		
 		//TODO: should be specifically limited to blogs that are accessible to current user.
-		$sql = "SELECT be.*, bl.location FROM csblog_entry_table AS be INNER JOIN " .
+		$sql = "SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short " .
+				"FROM csblog_entry_table AS be INNER JOIN " .
 				"csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN " .
 				"csblog_location_table AS bl ON (b.location_id=bl.location_id) WHERE ";
 		
@@ -816,6 +817,9 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		$numrows = $this->run_sql($sql);
 		
 		$retval = $this->db->farray_fieldnames('entry_id');
+		foreach($retval as $entryId=>$data) {
+			$retval[$entryId]['age_hype'] = $this->get_age_hype($data['post_timestamp']);
+		}
 		
 		return($retval);
 	}//end get_blog_entries()
@@ -923,6 +927,79 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		
 		return($retval);
 	}//end add_permission()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	protected function get_age_hype($timestamp, $addBrackets=FALSE) {
+		if(strlen($timestamp >= 9)) {
+			if(!is_numeric($timestamp)) {
+				$timestamp = strtotime($timestamp);
+			}
+			
+			$age = time() - $timestamp;
+			switch($age) {
+				case ($age <= 1800): {
+					$extraText = '<font color="red"><b>Ink\'s still WET!</b></font>';
+				} break;
+				
+				case ($age <= 3600): {
+					//modified less than an hour ago!
+					$extraText = '<font color="red"><b>Hot off the press!</b></font>';
+				} break;
+				
+				case ($age <= 86400): {
+					//modified less than 24 hours ago.
+					$extraText = '<font color="red"><b>New!</b></font>';
+				} break;
+				
+				case ($age <= 604800): {
+					//modified this week.
+					$extraText = '<font color="red">Less than a week old</font>';
+				} break;
+				
+				case ($age <= 2592000): {
+					//modified this month.
+					$extraText = '<b>Less than a month old</b>';
+				} break;
+				
+				case ($age <= 5184000): {
+					//modified in the last 2 months
+					$extraText = '<b>Updated last month</b>';
+				} break;
+				
+				case ($age <= 7776000): {
+					$extraText = '<i>Updated 3 months ago</i>';
+				} break;
+				
+				case ($age <= 10368000): {
+					$extraText = '<i>Updated 4 months ago</i>';
+				} break;
+				
+				case ($age <= 12960000): {
+					$extraText = '<i>Updated 5 months ago</i>';
+				} break;
+				
+				case ($age <= 15552000): {
+					$extraText = '<i>Updated in the last 6 months</i>';
+				} break;
+				
+				default: {
+					$extraText  = '<i>pretty old</i>';
+				}
+			}
+			
+			if(strlen($extraText) && $addBrackets) {
+				$extraText = '['. $extraText .']';
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid timestamp (". $timestamp .")");
+		}
+		
+		return($extraText);
+	}//end get_age_hype()
 	//-------------------------------------------------------------------------
 	
 	

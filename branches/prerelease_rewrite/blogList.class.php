@@ -12,8 +12,8 @@ class blogList extends dataLayerAbstract {
 	protected $blogIndex;
 	
 	//-------------------------------------------------------------------------
-    function __construct($location) {
-    	parent::__construct();
+    function __construct($location, array $dbParams=null) {
+    	parent::__construct($dbParams);
     	
     	$criteria = array(
 			'is_active'=>"t",
@@ -37,7 +37,7 @@ class blogList extends dataLayerAbstract {
 			}
 			foreach($this->validBlogs as $blogId=>$blogData) {
 				$blogName = $blogData['blog_name'];
-				$this->blogs[$blogName] = new blog($blogName);
+				$this->blogs[$blogName] = new blog($blogName, $this->dbParams);
 				if(!$this->blogs[$blogName]->is_initialized()) {
 					$this->blogs[$blogName]->initialize_locals($blogName);
 				}
