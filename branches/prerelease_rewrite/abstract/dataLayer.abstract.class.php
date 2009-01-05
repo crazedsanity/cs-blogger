@@ -423,7 +423,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 			$blogData = $this->get_blog_data_by_id($blogId);
 			$retval = array(
 				'entry_id'		=> $this->db->get_currval('csblog_entry_table_entry_id_seq'),
-				'full_permalink'	=> $blogData['location'] ."/". $sqlArr['permalink']
+				'full_permalink'	=> $blogData['location'] .'/'. $blogData['blog_name'] .'/'. $sqlArr['permalink']
 			);
 		}
 		else {
@@ -521,9 +521,16 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		if(strlen($fullPermalink) > (CSBLOG_TITLE_MINLEN *2)) {
 			//now get the permalink separate from the title.
 			$parts = explode('/', $fullPermalink);
-			$permalink = $parts[(count($parts)-1)];
-			$location = preg_replace('/'. $permalink .'$/', '', $fullPermalink);
-			$location = preg_replace('/\/+$/', '', $location);
+			
+			$permalink = array_pop($parts);
+			$blogName = array_pop($parts);
+			$location = '/'. $this->gfObj->string_from_array($parts, NULL, '/');
+			
+			
+			//quick test to make sure it's sane.
+			if($location .'/'. $blogName .'/'. $permalink != $fullPermalink) {
+				throw new exception(__METHOD__ .": failed to parse full permalink (". $location .'/'. $blogName .'/'. $permalink ." != ". $fullPermalink .")");
+			}
 			
 			$sql = "SELECT be.*, bl.location FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b " .
 					"ON (be.blog_id=b.blog_id) INNER JOIN csblog_location_table AS bl ON " .
@@ -724,6 +731,9 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	//-------------------------------------------------------------------------
 	public function add_location($location) {
 		if(is_string($location) && strlen($location) > 3) {
+			if(!preg_match('/^\//', $location)) {
+				$location = "/". $location;
+			}
 			$location = $this->gfObj->cleanString($location, "sql_insert");
 			$numrows = $this->run_sql("INSERT INTO csblog_location_table (location) " .
 					"VALUES ('". $location ."')");
