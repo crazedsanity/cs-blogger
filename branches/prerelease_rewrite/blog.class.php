@@ -57,10 +57,22 @@ class blog extends dataLayerAbstract {
 		
 		if(!is_numeric($this->blogId)) {
 			$data = $this->get_blog_data_by_name($blogName);
-			$this->blogName			= $data['blog_name'];
-			$this->blogDisplayName	= $data['blog_display_name'];
-			$this->blogId			= $data['blog_id'];
-			$this->blogLocation		= $data['location'];
+			
+			$var2index = array(
+				'blogDisplayName'	=> 'blog_display_name',
+				'blogName'			=> 'blog_name',
+				'blogId'			=> 'blog_id',
+				'blogLocation'		=> 'location'
+			);
+			
+			foreach($var2index as $var=>$index) {
+				if(isset($data[$index]) && strlen($data[$index])) {
+					$this->$var = $data[$index];
+				}
+				else {
+					throw new exception(__METHOD__ .": var ". $var ." not set from index ". $index .", no data (". $data[$index] .")");
+				}
+			}
 		}
 		else {
 			throw new exception(__METHOD__ .": already initialized");
@@ -100,6 +112,56 @@ class blog extends dataLayerAbstract {
 		}
 		return($retval);
 	}//end is_initialized()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	/**
+	 * Takes an array for URL, like what contentSystem{} builds, and return the 
+	 * contents for the proper blog (index or single entry).
+	 */
+	public function display_blog(array $url) {
+		$url = $this->parse_blog_url($url);
+		
+		switch(count($url)) {
+			case 1: {
+				//should be a specific entry.
+				$retval = $this->get_blog_entry($url[0]);
+				break;
+			}//end case 1
+			
+			default: {
+				//show the default index.
+				$retval = $this->get_recent_blogs(5);
+			}//end default
+		}
+		
+		return($retval);
+	}//end display_blog()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function parse_blog_url(array $url) {
+		if(count($url)) {
+			if(preg_match('/^blog/', $url[0])) {
+				$popped = array_shift($url);
+				if(!count($url)) {
+					throw new exception(__METHOD__ .": invalid data after removing unnecessary element (". $popped .")");
+				}
+			}
+			if(preg_match('/^'. $this->blogName .'/', $url[0])) {
+				array_shift($url);
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": invalid data");
+		}
+		
+		return($url);
+	}//end parse_blog_url()
 	//-------------------------------------------------------------------------
 	
 	

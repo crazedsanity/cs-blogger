@@ -117,7 +117,8 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 					$retval = $numrows;
 				}
 				else {
-					throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to run SQL... DBERROR: ". $dberror);
+					throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to run SQL... " .
+							"DBERROR: ". $dberror ."<BR>\nSQL::: ". $sql);
 				}
 				
 			}
@@ -569,17 +570,14 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	 */
 	public function get_blog_data_by_name($blogName) {
 		if(strlen($blogName) > 3) {
-			$blogName = $this->gfObj->cleanString($this->create_permalink_from_title($blogName), 'sql');
-			$sql = "SELECT b.*, bl.location FROM csblog_blog_table AS b INNER JOIN " .
-					"csblog_location_table AS bl USING (location_id) WHERE blog_name='". $blogName ."'";
+			$data = $this->get_blogs(array('b.blog_name'=>$blogName), 'blog_id');
 			
-			$numrows = $this->run_sql($sql);
-			
-			if($numrows == 1) {
-				$retval = $this->db->farray_fieldnames();
+			if(count($data) == 1) {
+				$keys = array_keys($data);
+				$retval = $data[$keys[0]];
 			}
 			else {
-				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror");
+				throw new exception(__METHOD__ .": too many records returned (". count($data) .")");
 			}
 		}
 		else {
@@ -602,17 +600,15 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	 * @return (array)		array of data about the blog.
 	 */
 	public function get_blog_data_by_id($blogId) {
+		
 		if(is_numeric($blogId) && $blogId > 0) {
-			$sql = "SELECT b.*, bl.location FROM csblog_blog_table AS b INNER JOIN csblog_location_table " .
-					"as bl ON (bl.location_id=b.location_id) WHERE b.blog_id=". $blogId;
-			
-			$numrows = $this->run_sql($sql);
-			
-			if($numrows == 1) {
-				$retval = $this->db->farray_fieldnames();
+			$data = $this->get_blogs(array('blog_id'=>$blogId), 'blog_id');
+			if(count($data) == 1) {
+				$keys = array_keys($data);
+				$retval = $data[$keys[0]];
 			}
 			else {
-				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror");
+				throw new exception(__METHOD__ .": invalid number of records returned (". count($data) .")");
 			}
 		}
 		else {
@@ -819,6 +815,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		$retval = $this->db->farray_fieldnames('entry_id');
 		foreach($retval as $entryId=>$data) {
 			$retval[$entryId]['age_hype'] = $this->get_age_hype($data['post_timestamp']);
+			$retval[$entryId]['content'] = $this->decode_content($data['content']);
 		}
 		
 		return($retval);
@@ -860,7 +857,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		
 		$numrows = $this->run_sql($sql);
 		
-		$retval = $this->db->farray_fieldnames('blog_id');
+		$retval = $this->db->farray_fieldnames('blog_id', true, false);
 		
 		return($retval);
 	}//end get_blogs()
@@ -870,10 +867,15 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	
 	//-------------------------------------------------------------------------
 	public function get_most_recent_blog() {
-		$criteria = array(
-			'blog_id'	=> $this->blogId
-		);
-		$retval = $this->get_blog_entries($criteria, 'post_timestamp DESC', 1);
+		if(is_numeric($this->blogId)) {
+			$criteria = array(
+				'blog_id'	=> $this->blogId
+			);
+			$retval = $this->get_blog_entries($criteria, 'post_timestamp DESC', 1);
+		}
+		else {
+			throw new exception(__METHOD__ .": internal blogId not set");
+		}
 		return($retval);
 	}//end get_most_recent_blog()
 	//-------------------------------------------------------------------------
@@ -882,16 +884,21 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	
 	//-------------------------------------------------------------------------
 	public function get_recent_blogs($limit=5, $offset=0) {
-		if(is_numeric($limit) && $limit > 0) {
-			if(is_numeric($offset) && $offset >= 0) {
-				$retval = $this->get_blog_entries(array('blog_id'=>$this->blogId), 'post_timestamp DESC', $limit, $offset);
+		if(is_numeric($this->blogId)) {
+			if(is_numeric($limit) && $limit > 0) {
+				if(is_numeric($offset) && $offset >= 0) {
+					$retval = $this->get_blog_entries(array('blog_id'=>$this->blogId), 'post_timestamp DESC', $limit, $offset);
+				}
+				else {
+					throw new exception(__METHOD__ .": invalid offset (". $offset .")");
+				}
 			}
 			else {
-				throw new exception(__METHOD__ .": invalid offset (". $offset .")");
+				throw new exception(__METHOD__ .": invalid limit (". $limit .")");
 			}
 		}
 		else {
-			throw new exception(__METHOD__ .": invalid limit (". $limit .")");
+			throw new exception(__METHOD__ .": blogId not set");
 		}
 		
 		return($retval);
