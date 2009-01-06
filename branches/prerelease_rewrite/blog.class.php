@@ -119,23 +119,11 @@ class blog extends dataLayerAbstract {
 	//-------------------------------------------------------------------------
 	/**
 	 * Takes an array for URL, like what contentSystem{} builds, and return the 
-	 * contents for the proper blog (index or single entry).
+	 * contents for the proper blog.
 	 */
 	public function display_blog(array $url) {
-		$url = $this->parse_blog_url($url);
-		
-		switch(count($url)) {
-			case 1: {
-				//should be a specific entry.
-				$retval = $this->get_blog_entry($url[0]);
-				break;
-			}//end case 1
-			
-			default: {
-				//show the default index.
-				$retval = $this->get_recent_blogs(5);
-			}//end default
-		}
+		$fullPermalink = "/". $this->gfObj->string_from_array($url, null, '/');
+		$retval = $this->get_blog_entry($fullPermalink);
 		
 		return($retval);
 	}//end display_blog()
@@ -144,24 +132,44 @@ class blog extends dataLayerAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	public function parse_blog_url(array $url) {
-		if(count($url)) {
-			if(preg_match('/^blog/', $url[0])) {
-				$popped = array_shift($url);
-				if(!count($url)) {
-					throw new exception(__METHOD__ .": invalid data after removing unnecessary element (". $popped .")");
+	public function can_access_blog($blogName, $username) {
+		if(strlen($blogName) && strlen($username)) {
+			$blogId = $blogName;
+			if(!is_numeric($blogName)) {
+				$blogData = $this->get_blog_data_by_name($blogName);
+				$blogId = $blogData['blog_id'];
+			}
+			$useUid = $username;
+			if(!is_numeric($username)) {
+				$useUid = $this->get_uid($username);
+			}
+			
+			if(is_numeric($blogId) && is_numeric($useUid)) {
+				
+				$sql = "SELECT * FROM csblog_permission_table WHERE blog_id=". $blogId .
+						" AND uid=". $useUid;
+				
+				$numrows = $this->run_sql($sql,false);
+				
+				$retval = false;
+				if($numrows == 1) {
+					$retval = true;
+				}
+				elseif($numrows > 1 || $numrows < 0) {
+					throw new exception(__METHOD__ .": invalid data returned, numrows=(". $numrows .")");
 				}
 			}
-			if(preg_match('/^'. $this->blogName .'/', $url[0])) {
-				array_shift($url);
+			else {
+				throw new exception(__METHOD__ .": invalid data for blogId (". $blogId .") or uid (". $useUid .")");
 			}
 		}
 		else {
-			throw new exception(__METHOD__ .": invalid data");
+			throw new exception(__METHOD__ .": no data for blogName (". $blogName .") or username (". $username .")");
 		}
 		
-		return($url);
-	}//end parse_blog_url()
+		return($retval);
+		
+	}//end can_access_blog()
 	//-------------------------------------------------------------------------
 	
 	

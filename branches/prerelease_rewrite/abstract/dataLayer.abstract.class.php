@@ -423,7 +423,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 			$blogData = $this->get_blog_data_by_id($blogId);
 			$retval = array(
 				'entry_id'		=> $this->db->get_currval('csblog_entry_table_entry_id_seq'),
-				'full_permalink'	=> $blogData['location'] .'/'. $blogData['blog_name'] .'/'. $sqlArr['permalink']
+				'full_permalink'	=> $this->get_full_permalink($sqlArr['permalink'])
 			);
 		}
 		else {
@@ -517,6 +517,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	 * @return (array)			Returns array of data, includes decoded content
 	 */
 	public function get_blog_entry($fullPermalink) {
+		//TODO: have this use get_blog_entries()
 		//the total permalink length should be at least double the minimum title length to include a path.
 		if(strlen($fullPermalink) > (CSBLOG_TITLE_MINLEN *2)) {
 			//now get the permalink separate from the title.
@@ -532,7 +533,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 				throw new exception(__METHOD__ .": failed to parse full permalink (". $location .'/'. $blogName .'/'. $permalink ." != ". $fullPermalink .")");
 			}
 			
-			$sql = "SELECT be.*, bl.location FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b " .
+			$sql = "SELECT be.*, bl.location, b.blog_name FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b " .
 					"ON (be.blog_id=b.blog_id) INNER JOIN csblog_location_table AS bl ON " .
 					"(b.location_id=bl.location_id) " .
 					"WHERE bl.location='". $location ."' AND be.permalink='". $permalink ."'";
@@ -826,6 +827,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		foreach($retval as $entryId=>$data) {
 			$retval[$entryId]['age_hype'] = $this->get_age_hype($data['post_timestamp']);
 			$retval[$entryId]['content'] = $this->decode_content($data['content']);
+			$retval[$entryId]['full_permalink'] = $this->get_full_permalink($data['permalink']);
 		}
 		
 		return($retval);
@@ -1017,6 +1019,15 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		
 		return($extraText);
 	}//end get_age_hype()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	protected function get_full_permalink($permalink) {
+		$retval = $this->blogLocation .'/'. $this->blogName .'/'. $permalink;
+		return($retval);
+	}//end get_full_permalink()
 	//-------------------------------------------------------------------------
 	
 	
