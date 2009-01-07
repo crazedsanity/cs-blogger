@@ -12,13 +12,15 @@ class blogList extends dataLayerAbstract {
 	protected $blogIndex;
 	
 	//-------------------------------------------------------------------------
-    function __construct($location, array $dbParams=null) {
+    function __construct($location=null, array $dbParams=null) {
     	parent::__construct($dbParams);
     	
     	$criteria = array(
-			'is_active'=>"t",
-			'bl.location'	=> $location
+			'is_active'=>"t"
 		);
+		if(strlen($location)) {
+			$criteria['bl.location'] = $location;
+		}
     	$this->validBlogs = $this->get_blogs($criteria, 'last_post_timestamp DESC');
     }//end __construct()
 	//-------------------------------------------------------------------------
