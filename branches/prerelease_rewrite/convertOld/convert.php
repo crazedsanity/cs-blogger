@@ -227,6 +227,10 @@ class tmpConverter extends dataLayerAbstract {
 			foreach($data as $entryId=>$entryData) {
 				$entryText = $this->fsObj->read($entryData['permalink'] .'.blog');
 				
+				//remove doubled-up single quotes (problem with quoting in the old system)
+				$fixRegex = "/[']{2,}/";
+				$entryData['title'] = preg_replace($fixRegex, "'", $entryData['title']);
+				
 				//we've got everything; create the entry.
 				$result = $this->create_entry(
 					$entryData['blog_id'],
@@ -264,8 +268,6 @@ $obj->run_setup();
 $obj->convert_users('cs_authentication_table');
 $obj->run_conversion();
 $obj->db->commitTrans();
-$gf=new cs_globalFunctions;
-$gf->debug_print($obj->db,1);
 
 
 ?>

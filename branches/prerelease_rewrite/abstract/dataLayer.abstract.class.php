@@ -355,8 +355,8 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		$cleanStringArr = array(
 			'blog_id'		=> "integer",
 			'author_uid'	=> "integer",
-			'title'			=> "sql92_insert",
-			'content'		=> "sql92_insert",
+			'title'			=> "sql",
+			'content'		=> "sql",
 			'permalink'		=> "email"
 		);
 		if(is_numeric($blogId) && $blogId > 0) {
@@ -521,11 +521,10 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		//the total permalink length should be at least double the minimum title length to include a path.
 		if(strlen($fullPermalink) > (CSBLOG_TITLE_MINLEN *2)) {
 			//now get the permalink separate from the title.
-			$parts = explode('/', $fullPermalink);
-			
-			$permalink = array_pop($parts);
-			$blogName = array_pop($parts);
-			$location = '/'. $this->gfObj->string_from_array($parts, NULL, '/');
+			$parts = $this->parse_full_permalink($fullPermalink);
+			$permalink = $parts['permalink'];
+			$blogName = $parts['blogName'];
+			$location = $parts['location'];
 			
 			
 			//quick test to make sure it's sane.
@@ -533,28 +532,17 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 				throw new exception(__METHOD__ .": failed to parse full permalink (". $location .'/'. $blogName .'/'. $permalink ." != ". $fullPermalink .")");
 			}
 			
-			$sql = "SELECT be.*, bl.location, b.blog_name FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b " .
-					"ON (be.blog_id=b.blog_id) INNER JOIN csblog_location_table AS bl ON " .
-					"(b.location_id=bl.location_id) " .
-					"WHERE bl.location='". $location ."' AND be.permalink='". $permalink ."'";
+			$data = $this->get_blog_entries(array('bl.location'=>$location,'be.permalink'=>$permalink),'be.entry_id');
 			
-			$numrows = $this->run_sql($sql);
-			
-			if($numrows == 1) {
-				$retval = $this->db->farray_fieldnames();
-				if(isset($retval['content'])) {
-					$retval['content'] = $this->decode_content($retval['content']);
-					$retval['full_permalink'] = $fullPermalink;
-				}
-				else {
-					throw new exception(__METHOD__ .": can't find 'content' section for decoding");
-				}
+			if(count($data) == 1) {
+				$keys = array_keys($data);
+				$retval = $data[$keys[0]];
 			}
-			elseif($numrows > 1) {
-				throw new exception(__METHOD__ .": multiple records returned for same location (". $numrows .")");
+			elseif(count($data) > 1) {
+				throw new exception(__METHOD__ .": multiple records returned for same location (". count($data) .")");
 			}
 			else {
-				throw new exception(__METHOD__ .": invalid num rows (". $numrows .") or dberror");
+				throw new exception(__METHOD__ .": invalid number of records (". count($data) .") or dberror");
 			}
 		}
 		else {
@@ -795,8 +783,8 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		}
 		
 		//TODO: should be specifically limited to blogs that are accessible to current user.
-		$sql = "SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short " .
-				"FROM csblog_entry_table AS be INNER JOIN " .
+		$sql = "SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short, " .
+				"b.blog_name FROM csblog_entry_table AS be INNER JOIN " .
 				"csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN " .
 				"csblog_location_table AS bl ON (b.location_id=bl.location_id) WHERE ";
 		
@@ -823,11 +811,16 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		
 		$numrows = $this->run_sql($sql);
 		
-		$retval = $this->db->farray_fieldnames('entry_id');
+		$retval = $this->db->farray_fieldnames('entry_id', true, false);
 		foreach($retval as $entryId=>$data) {
 			$retval[$entryId]['age_hype'] = $this->get_age_hype($data['post_timestamp']);
 			$retval[$entryId]['content'] = $this->decode_content($data['content']);
 			$retval[$entryId]['full_permalink'] = $this->get_full_permalink($data['permalink']);
+			
+			//make a formatted post_timestamp index.
+			$retval[$entryId]['formatted_post_timestamp'] = 
+					strftime('%A, %B %d, %Y %I:%M %p', strtotime($data['post_timestamp']));
+			
 		}
 		
 		return($retval);
@@ -1028,6 +1021,39 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		$retval = $this->blogLocation .'/'. $this->blogName .'/'. $permalink;
 		return($retval);
 	}//end get_full_permalink()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function parse_full_permalink($fullPermalink) {
+		
+		if(strlen($fullPermalink) && preg_match("/\//", $fullPermalink)) {
+			$fullPermalink = preg_replace("/^\//", "", $fullPermalink);
+			$parts = explode("/", $fullPermalink);
+			
+			if(count($parts) >= 3) {
+				$permalink = array_pop($parts);
+				$blogName = array_pop($parts);
+				$location = "/". $this->gfObj->string_from_array($parts, NULL, "/");
+				
+				$retval = array(
+					'location'	=> $location,
+					'blogName'	=> $blogName,
+					'permalink'	=> $permalink
+				);
+			}
+			else {
+				throw new exception(__METHOD__ .": not enough parts (i.e. location, blogName, & permalink) in " .
+						"full permalink (". $fullPermalink .")");
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": ");
+		}
+		
+		return($retval);
+	}//end parse_full_permalink()
 	//-------------------------------------------------------------------------
 	
 	
