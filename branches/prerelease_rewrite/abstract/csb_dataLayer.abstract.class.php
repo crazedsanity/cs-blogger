@@ -1,18 +1,10 @@
 <?php
 
 require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.php');
+require_once(dirname(__FILE__) .'/../../cs-content/cs_globalFunctions.php');
 require_once(dirname(__FILE__) .'/../../cs-versionparse/cs_version.abstract.class.php');
+require_once(dirname(__FILE__) .'/../csb_location.class.php');
 
-/**
- * TASKS:::
- * [_] Create abstraction layers for multiple data sets
- * 		[_] PostgreSQL (pgsql)
- * 		[_] Mysql
- * 		[_] SQLite
- * 		[_] file-based (nodb)
- * [_] Abstract user authentication
- * 		[_] Change authentication layer to just link usernames to internal user id's
- */
 
 abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	
@@ -289,10 +281,11 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		}
 		
 		//attempt to get/create the location...
-		$locationId = $this->get_location_id($location);
+		$loc = new csb_location($this->dbParams);
+		$locationId = $loc->get_location_id($location);
 		if(!is_numeric($locationId) || $locationId < 1) {
 			//TODO: should we really be creating this automatically?
-			$locationId = $this->add_location($location);
+			$locationId = $loc->add_location($location);
 		}
 		
 		$formattedBlogName = $this->create_permalink_from_title($blogName);
@@ -534,65 +527,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		
 		return($retval);
 	}//end update_entry()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	public function add_location($location) {
-		if(is_string($location) && strlen($location) > 3) {
-			if(!preg_match('/^\//', $location)) {
-				$location = "/". $location;
-			}
-			$location = $this->gfObj->cleanString($location, "sql_insert");
-			$numrows = $this->run_sql("INSERT INTO csblog_location_table (location) " .
-					"VALUES ('". $location ."')");
-			
-			if($numrows == 1) {
-				//okay, retrieve the id inserted.
-				$retval = $this->db->get_currval('csblog_location_table_location_id_seq');
-			}
-			else {
-				throw new exception(__METHOD__ .": failed to create location (". $location ."), " .
-						"numrows=(". $numrows .")");
-			}
-		}
-		else {
-			throw new exception(__METHOD__ .": invalid location (". $location .")");
-		}
-		
-		return($retval);
-	}//end add_location()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	public function get_location_id($location) {
-		if(is_string($location) && strlen($location) > 3) {
-			$location = $this->gfObj->cleanString($location, "sql_insert");
-			$sql = "SELECT location_id FROM csblog_location_table " .
-					"WHERE location='". $location ."'";
-			$numrows = $this->run_sql($sql, false);
-			
-			if($numrows == 0) {
-				$retval = false;
-			}
-			elseif($numrows == 1) {
-				$retval = $this->db->farray();
-				$retval = $retval[0];
-			}
-			else {
-				throw new exception(__METHOD__ .": failed to retrieve location (". $location ."), " .
-						"invalid numrows (". $numrows .")");
-			}
-		}
-		else {
-			throw new exception(__METHOD__ .": invalid location (". $location .")");
-		}
-		
-		return($retval);
-	}//end get_location_id()
 	//-------------------------------------------------------------------------
 	
 	
