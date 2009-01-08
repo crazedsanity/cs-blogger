@@ -15,6 +15,9 @@ class csb_blogLocation extends csb_blogAbstract {
     function __construct($location, array $dbParams=null) {
     	parent::__construct($dbParams);
     	
+    	$loc = new csb_location();
+    	$location = $loc->fix_location($location);
+    	
     	$criteria = array(
 			'is_active'		=>"t",
 			'bl.location'	=> $location

@@ -21,19 +21,27 @@ class csb_location extends csb_dataLayerAbstract {
 			if(!preg_match('/^\//', $location)) {
 				$location = "/". $location;
 			}
+			$location = $this->fix_location($location);
 			$location = $this->gfObj->cleanString($location, "sql_insert");
 			$sql = "INSERT INTO csblog_location_table (location) " .
 					"VALUES ('". $location ."')";
-			$numrows = $this->run_sql($sql);
 			
-			
-			if($numrows == 1) {
-				//okay, retrieve the id inserted.
-				$retval = $this->db->get_currval('csblog_location_table_location_id_seq');
+			try {
+				$numrows = $this->run_sql($sql);
+				
+				
+				if($numrows == 1) {
+					//okay, retrieve the id inserted.
+					$retval = $this->db->get_currval('csblog_location_table_location_id_seq');
+				}
+				else {
+					throw new exception(__METHOD__ .": failed to create location (". $location ."), " .
+							"numrows=(". $numrows .")");
+				}
 			}
-			else {
-				throw new exception(__METHOD__ .": failed to create location (". $location ."), " .
-						"numrows=(". $numrows .")");
+			catch(exception $e) {
+				cs_debug_backtrace($this->gfObj->debugPrintOpt);
+				throw new exception(__METHOD__ .": failed to create location (". $location .")... DETAILS::: ". $e->getMessage());
 			}
 		}
 		else {
@@ -79,13 +87,15 @@ class csb_location extends csb_dataLayerAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	protected function fix_location($location) {
+	public function fix_location($location) {
 		if(strlen($location)) {
-			$retval = preg_replace("/\/$/", "", $location);
+			$retval = $location;
 			if(!preg_match("/^\//", $retval)) {
 				$retval = "/". $retval;
 			}
-			preg_replace("/(\/){2,}/", "/", $retval);
+			$retval = preg_replace("/[^A-Za-z0-9\/_-]/", "", $retval);
+			$retval = preg_replace("/(\/){2,}/", "/", $retval);
+			$retval = preg_replace("/\/$/", "", $retval);
 		}
 		else {
 			throw new exception(__METHOD__ .": no valid location (". $location .")");
@@ -93,6 +103,24 @@ class csb_location extends csb_dataLayerAbstract {
 		
 		return($retval);
 	}//end fix_location()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function get_locations() {
+		$sql = "SELECT location_id, location FROM csblog_location_table ORDER BY location_id";
+		$numrows = $this->run_sql($sql,false);
+		
+		if($numrows > 0) {
+			$retval = $this->db->farray_nvp('location_id', 'location');
+		}
+		else {
+			throw new exception(__METHOD__ .": no records found (". $numrows .")");
+		}
+		
+		return($retval);
+	}//end get_locations()
 	//-------------------------------------------------------------------------
 	
 	
