@@ -1,9 +1,9 @@
 <?php
 
 
-require_once(dirname(__FILE__) .'/blog.class.php');
+require_once(dirname(__FILE__) .'/csb_blog.class.php');
 
-class blogList extends dataLayerAbstract {
+class csb_blogList extends csb_dataLayerAbstract {
 	
 	/** An array of blog{} objects. */
 	protected $blogObjList;

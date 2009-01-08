@@ -1,9 +1,9 @@
 <?php
 
 
-require_once(dirname(__FILE__) .'/blog.class.php');
+require_once(dirname(__FILE__) .'/csb_blog.class.php');
 
-class blogLocation extends blogAbstract {
+class csb_blogLocation extends csb_blogAbstract {
 	
 	/** An array of blog{} objects. */
 	protected $blogObjList;
@@ -38,7 +38,7 @@ class blogLocation extends blogAbstract {
 			$retval = array();
 			foreach($this->validBlogs as $blogId=>$blogData) {
 				$blogName = $blogData['blog_name'];
-				$this->blogs[$blogName] = new blog($blogName, $this->dbParams);
+				$this->blogs[$blogName] = new csb_blog($blogName, $this->dbParams);
 				if(!$this->blogs[$blogName]->is_initialized()) {
 					$this->blogs[$blogName]->initialize_locals($blogName);
 				}

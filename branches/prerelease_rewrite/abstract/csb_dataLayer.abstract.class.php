@@ -14,7 +14,7 @@ require_once(dirname(__FILE__) .'/../../cs-versionparse/cs_version.abstract.clas
  * 		[_] Change authentication layer to just link usernames to internal user id's
  */
 
-abstract class dataLayerAbstract extends cs_versionAbstract {
+abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	
 	/**  */
 	protected $gfObj;

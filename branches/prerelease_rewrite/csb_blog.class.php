@@ -1,8 +1,8 @@
 <?php
 
-require_once(dirname(__FILE__) .'/abstract/blog.abstract.class.php');
+require_once(dirname(__FILE__) .'/abstract/csb_blog.abstract.class.php');
 
-class blog extends blogAbstract {
+class csb_blog extends csb_blogAbstract {
 	
 	/** Internal name of blog (looks like a permalink) */
 	protected $blogName;

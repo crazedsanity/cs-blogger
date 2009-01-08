@@ -1,8 +1,8 @@
 <?php
 
-require_once(dirname(__FILE__) .'/dataLayer.abstract.class.php');
+require_once(dirname(__FILE__) .'/csb_dataLayer.abstract.class.php');
 
-class blogAbstract extends dataLayerAbstract {
+class csb_blogAbstract extends csb_dataLayerAbstract {
 	
 	/** Internal name of blog (looks like a permalink) */
 	protected $blogName;

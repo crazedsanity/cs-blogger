@@ -6,9 +6,9 @@
  */
 
 
-require_once(dirname(__FILE__) .'/blog.class.php');
+require_once(dirname(__FILE__) .'/csb)blog.class.php');
 
-class blogUser extends blogAbstract {
+class csb_blogUser extends csb_blogAbstract {
 	
 	/** An array of blog{} objects. */
 	protected $blogObjList;
@@ -30,7 +30,7 @@ class blogUser extends blogAbstract {
 			}
 	    	$this->validBlogs = $this->get_blogs($criteria, 'last_post_timestamp DESC');
 	    	foreach($this->validBlogs as $blogId=>$data) {
-	    		$obj = new blog($data['blog_name']);
+	    		$obj = new csb_blog($data['blog_name']);
 	    		if(!$obj->can_access_blog($data['blog_name'], $user)) {
 	    			unset($this->validBlogs[$blogId]);
 	    		}
