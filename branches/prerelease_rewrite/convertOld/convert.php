@@ -9,7 +9,7 @@ require_once(dirname(__FILE__) .'/../../siteConfig.php');
 require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.php');
 require_once(dirname(__FILE__) .'/../../cs-content/cs_globalFunctions.php');
 require_once(dirname(__FILE__) .'/../../cs-content/cs_fileSystemClass.php');
-require_once(dirname(__FILE__) .'/../abstract/dataLayer.abstract.class.php');
+require_once(dirname(__FILE__) .'/../abstract/csb_blog.abstract.class.php');
 
 
 
@@ -33,7 +33,7 @@ $newDbParams = array(
 //=============================================================================
 //=============================================================================
 //=============================================================================
-class tmpConverter extends dataLayerAbstract {
+class tmpConverter extends csb_blogAbstract {
 	
 	/** Connection to the old SQLite database */
 	private $oldDb;
