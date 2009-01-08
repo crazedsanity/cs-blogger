@@ -31,19 +31,13 @@ class blogList extends dataLayerAbstract {
 	public function get_most_recent_blogs($numPerBlog=1) {
 		if(is_array($this->validBlogs) && count($this->validBlogs)) {
 			$retval = array();
-			if(is_null($numPerBlog) || !is_numeric($numPerBlog) || $numPerBlog <= 1) {
-				$methodName = 'get_most_recent_blog';
-			}
-			else {
-				$methodName = 'get_recent_blogs';
-			}
 			foreach($this->validBlogs as $blogId=>$blogData) {
 				$blogName = $blogData['blog_name'];
 				$this->blogs[$blogName] = new blog($blogName, $this->dbParams);
 				if(!$this->blogs[$blogName]->is_initialized()) {
 					$this->blogs[$blogName]->initialize_locals($blogName);
 				}
-				$retval[$blogName] = $this->blogs[$blogName]->$methodName();
+				$retval[$blogName] = $this->blogs[$blogName]->get_recent_blogs($numPerBlog);
 				if($numPerBlog == 1) {
 					$keys = array_keys($retval[$blogName]);
 					$retval[$blogName] = $retval[$blogName][$keys[0]];

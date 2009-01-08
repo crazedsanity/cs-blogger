@@ -872,15 +872,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 	
 	//-------------------------------------------------------------------------
 	public function get_most_recent_blog() {
-		if(is_numeric($this->blogId)) {
-			$criteria = array(
-				'blog_id'	=> $this->blogId
-			);
-			$retval = $this->get_blog_entries($criteria, 'post_timestamp DESC', 1);
-		}
-		else {
-			throw new exception(__METHOD__ .": internal blogId not set");
-		}
+		$retval = $this->get_recent_blogs(1);
 		return($retval);
 	}//end get_most_recent_blog()
 	//-------------------------------------------------------------------------

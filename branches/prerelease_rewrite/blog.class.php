@@ -152,7 +152,7 @@ class blog extends dataLayerAbstract {
 				$numrows = $this->run_sql($sql,false);
 				
 				$retval = false;
-				if($numrows == 1) {
+				if($numrows == 1 || $blogData['uid'] == $useUid) {
 					$retval = true;
 				}
 				elseif($numrows > 1 || $numrows < 0) {

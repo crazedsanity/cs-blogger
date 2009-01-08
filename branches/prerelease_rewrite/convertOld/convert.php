@@ -231,6 +231,10 @@ class tmpConverter extends dataLayerAbstract {
 				$fixRegex = "/[']{2,}/";
 				$entryData['title'] = preg_replace($fixRegex, "'", $entryData['title']);
 				
+				//remove block row definitions from within the entry text
+				$entryText = preg_replace("/<!-- BEGIN (.+) -->/", "", $entryText);
+				$entryText = preg_replace("/<!-- END (.+) -->/", "", $entryText);
+				
 				//we've got everything; create the entry.
 				$result = $this->create_entry(
 					$entryData['blog_id'],
