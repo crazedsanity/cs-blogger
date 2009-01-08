@@ -1,7 +1,7 @@
 <?php
 
-require_once(dirname(__FILE__) .'/../lib/cs-blogger/blog.class.php');
-require_once(dirname(__FILE__) .'/../lib/cs-blogger/blogList.class.php');
+require_once(dirname(__FILE__) .'/../lib/cs-blogger/csb_blog.class.php');
+require_once(dirname(__FILE__) .'/../lib/cs-blogger/csb_blogList.class.php');
 $page->rip_all_block_rows();
 
 //they're just viewing the /blog page; show list of member's blogs.
@@ -10,7 +10,7 @@ $fs = new cs_fileSystemClass(CS_BLOGRWDIR);
 $page->add_template_var('html_title', 'Member Blogs - CrazedSanity.com');
 if(count($sectionArr) == 1 || (count($sectionArr) == 2 && $sectionArr[1] == 'index')) {
 	
-	$blog = new blogList('/blog');
+	$blog = new csb_blogList('/blog');
 	$myData = $blog->get_most_recent_blogs(5);
 	
 	$mainRowTmpl = $page->templateRows['blogUserLink'];
@@ -35,7 +35,7 @@ elseif(count($sectionArr) == 3) {
 	$page->add_template_file('content', 'blog/singleEntry.tmpl');
 	
 	$username = $sectionArr[1];
-	$blog = new blog($username);
+	$blog = new csb_blog($username);
 	$myData = $blog->display_blog($sectionArr);
 	
 	foreach($myData as $tmplVar=>$val) {
@@ -56,7 +56,7 @@ else {
 	$page->allow_invalid_urls(TRUE);
 	$page->add_template_file('_singleEntry', 'blog/singleEntry.tmpl');
 	$username = $sectionArr[1];
-	$blog = new blog($username);
+	$blog = new csb_blog($username);
 	$myData = $blog->display_blog($sectionArr);
 	
 	$entryRow = $page->templateVars['_singleEntry'];
