@@ -6,9 +6,9 @@
  */
 
 
-require_once(dirname(__FILE__) .'/blogList.class.php');
+require_once(dirname(__FILE__) .'/blog.class.php');
 
-class blogListUser extends BlogList {
+class blogUser extends blogAbstract {
 	
 	/** An array of blog{} objects. */
 	protected $blogObjList;
