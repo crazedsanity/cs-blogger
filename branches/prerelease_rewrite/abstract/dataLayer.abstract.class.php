@@ -631,7 +631,7 @@ abstract class dataLayerAbstract extends cs_versionAbstract {
 		if(is_numeric($blogEntryId) && $blogEntryId > 0 && is_array($updates) && count($updates)) {
 			$validFields = array(
 				'post_timestamp'	=> 'datetime',
-				'content'			=> 'sql92_insert'
+				'content'			=> 'sql'
 			);
 			$updateThis = array_intersect_key($updates, $validFields);
 			if(is_array($updateThis) && count($updateThis)) {
