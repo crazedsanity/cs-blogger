@@ -121,49 +121,6 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	public function can_access_blog($blogName, $username) {
-		if(strlen($blogName) && strlen($username)) {
-			$blogId = $blogName;
-			if(!is_numeric($blogName)) {
-				$blogData = $this->get_blog_data_by_name($blogName);
-				$blogId = $blogData['blog_id'];
-			}
-			$useUid = $username;
-			if(!is_numeric($username)) {
-				$useUid = $this->get_uid($username);
-			}
-			
-			if(is_numeric($blogId) && is_numeric($useUid)) {
-				
-				$sql = "SELECT * FROM csblog_permission_table WHERE blog_id=". $blogId .
-						" AND uid=". $useUid;
-				
-				$numrows = $this->run_sql($sql,false);
-				
-				$retval = false;
-				if($numrows == 1 || $blogData['uid'] == $useUid) {
-					$retval = true;
-				}
-				elseif($numrows > 1 || $numrows < 0) {
-					throw new exception(__METHOD__ .": invalid data returned, numrows=(". $numrows .")");
-				}
-			}
-			else {
-				throw new exception(__METHOD__ .": invalid data for blogId (". $blogId .") or uid (". $useUid .")");
-			}
-		}
-		else {
-			throw new exception(__METHOD__ .": no data for blogName (". $blogName .") or username (". $username .")");
-		}
-		
-		return($retval);
-		
-	}//end can_access_blog()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
 	/**
 	 * Creates a "permalink" just from title (does NOT include blog location):
 	 * lowercases, strips special characters, uses "_" in place of spaces and 

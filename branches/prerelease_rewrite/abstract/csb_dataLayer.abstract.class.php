@@ -4,6 +4,7 @@ require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.php');
 require_once(dirname(__FILE__) .'/../../cs-content/cs_globalFunctions.php');
 require_once(dirname(__FILE__) .'/../../cs-versionparse/cs_version.abstract.class.php');
 require_once(dirname(__FILE__) .'/../csb_location.class.php');
+require_once(dirname(__FILE__) .'/../csb_permission.class.php');
 
 
 abstract class csb_dataLayerAbstract extends cs_versionAbstract {
@@ -102,7 +103,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 				$dberror = $this->db->errorMsg();
 				
 				if($exceptionOnNoRows === true && $numrows <= 0 && !strlen($dberror)) {
-					cs_debug_backtrace(1);
 					throw new exception(__METHOD__ .": no rows returned (". $numrows .")");
 				}
 				elseif(is_numeric($numrows) && !strlen($dberror)) {
@@ -585,7 +585,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	public function get_blogs(array $criteria, $orderBy, $limit=NULL, $offset=NULL) {
+	public function get_blogs(array $criteria, $orderBy=NULL, $limit=NULL, $offset=NULL) {
 		if(!is_array($criteria) || !count($criteria)) {
 			throw new exception(__METHOD__ .": invalid criteria");
 		}
@@ -607,6 +607,9 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		if(strlen($orderBy)) {
 			$sql .= " ORDER BY ". $orderBy;
 		}
+		else {
+			$sql .= " ORDER BY b.blog_id";
+		}
 		
 		if(is_numeric($limit) && $limit > 0) {
 			$sql .= " LIMIT ". $limit;
@@ -621,37 +624,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		
 		return($retval);
 	}//end get_blogs()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	public function add_permission($blogId, $toUser) {
-		if(!is_numeric($toUser) && is_string($toUser) && strlen($toUser)) {
-			$toUser = $this->get_uid($toUser);
-		}
-		
-		if(is_numeric($toUser) && $toUser > 0 && is_numeric($blogId) && $blogId > 0) {
-			$this->db->beginTrans();
-			$sql = "INSERT INTO csblog_permission_table (blog_id, uid) VALUES " .
-					"(". $blogId .", ". $toUser .")";
-			$numrows = $this->run_sql($sql);
-			
-			if($numrows == 1) {
-				$this->db->commitTrans();
-				$retval = $this->db->get_currval('csblog_permission_table_permission_id_seq');
-			}
-			else {
-				$this->db->rollbackTrans();
-				throw new exception(__METHOD__ .": invalid numrows (". $numrows .")");
-			}
-		}
-		else {
-			throw new exception(__METHOD__ .": invalid uid (". $toUser .") or blogId (". $blogId .")");
-		}
-		
-		return($retval);
-	}//end add_permission()
 	//-------------------------------------------------------------------------
 	
 	

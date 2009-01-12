@@ -19,22 +19,29 @@ class csb_blogUser extends csb_blogAbstract {
 	//-------------------------------------------------------------------------
     function __construct($user, $location=null, array $dbParams=null) {
     	if(strlen($user) > 2) {
-	    	parent::__construct($location, $dbParams);
+	    	parent::__construct($dbParams);
 	    	
 	    	$criteria = array(
 				'is_active'=>"t"
 			);
 			
 			if(is_string($location) && strlen($location)) {
-				$criteria['location'] = $location;
+				$criteria['bl.location'] = $location;
 			}
-	    	$this->validBlogs = $this->get_blogs($criteria, 'last_post_timestamp DESC');
-	    	foreach($this->validBlogs as $blogId=>$data) {
-	    		$obj = new csb_blog($data['blog_name']);
-	    		if(!$obj->can_access_blog($data['blog_name'], $user)) {
-	    			unset($this->validBlogs[$blogId]);
-	    		}
-	    	}
+			$uid = $this->get_uid($user);
+			if(is_numeric($uid)) {
+		    	$this->validBlogs = $this->get_blogs($criteria, 'last_post_timestamp DESC');
+		    	$permObj = new csb_permission($dbParams);
+		    	foreach($this->validBlogs as $blogId=>$data) {
+		    		$obj = new csb_blog($data['blog_name']);
+		    		if(!$permObj->can_access_blog($blogId, $uid)) {
+		    			unset($this->validBlogs[$blogId]);
+		    		}
+		    	}
+			}
+			else {
+				throw new exception(__METHOD__ .": unable to retrieve uid for (". $user .")");
+			}
     	}
     	else {
     		throw new exception(__METHOD__ .": no username set (". $user .")");
