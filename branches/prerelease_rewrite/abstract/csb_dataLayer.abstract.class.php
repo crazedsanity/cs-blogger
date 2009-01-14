@@ -175,17 +175,17 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	 */
 	public function create_user($username, $password) {
 		
+		$username = $this->gfObj->cleanString($username, 'email');
+		if($username != func_get_arg(0)) {
+			throw new exception(__METHOD__ .": username contained invalid characters (". $username ." != ". func_get_arg(0) .")");
+		}
+		
 		$existingUser = $this->get_uid($username);
 		
-		ob_start();
-		var_dump($existingUser);
-		$debugThis = ob_get_contents();
-		ob_end_clean();
-		
 		if($existingUser === false) {
-			$pass = md5($username .'-'. $password);
+			$encryptedPass = md5($username .'-'. $password);
 			$sql = 'INSERT INTO cs_authentication_table (username, passwd) VALUES ' .
-					"('". $username ."', '". $password ."')";
+					"('". $username ."', '". $encryptedPass ."')";
 			
 			$numrows = $this->run_sql($sql);
 			
@@ -225,16 +225,18 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	 * @return false		boolean FALSE returned if no user
 	 * @return (int)		UID for existing user
 	 */
-	public function get_uid($username) {
+	public function get_user($username) {
 		
 		if(strlen($username) && is_string($username) && !is_numeric($username)) {
 			$username = $this->gfObj->cleanString($username, 'email');
-			$sql = "SELECT uid FROM cs_authentication_table WHERE username='". $username ."'";
+			if($username != func_get_arg(0)) {
+				throw new exception(__METHOD__ .": username contained invalid characters (". $username ." != ". func_get_arg(0) .")");
+			}
+			$sql = "SELECT * FROM cs_authentication_table WHERE username='". $username ."'";
 			$numrows = $this->run_sql($sql, false);
 			
 			if($numrows == 1) {
-				$data = $this->db->farray();
-				$retval = $data[0];
+				$retval = $this->db->farray_fieldnames();
 			}
 			elseif($numrows == 0) {
 				$retval = false;
@@ -245,6 +247,27 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		}
 		else {
 			throw new exception(__METHOD__ .": invalid data for username (". $username .")");
+		}
+		
+		return($retval);
+	}//end get_user()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function get_uid($username) {
+		$data = $this->get_user($username);
+		if(is_bool($data) && $data === false) {
+			$retval = $data;
+		}
+		else {
+			if(is_array($data) && isset($data['uid']) && is_numeric($data['uid'])) {
+				$retval = $data['uid'];
+			}
+			else {
+				throw new exception(__METHOD__ .": failed to locate uid column in return DATA::: ". $this->gfObj->debug_print($data,0));
+			}
 		}
 		
 		return($retval);
@@ -479,59 +502,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	/**
-	 * Updates a single entry (within a transaction)
-	 * 
-	 * @param $blogEntryId		(int) entry_id to update.
-	 * @param $updates			(array) array of field=>value updates
-	 * 
-	 * @return exception		throws exception on error.
-	 * @return true				returns boolean TRUE on success.
-	 */
-	public function update_entry($blogEntryId, array $updates) {
-		if(is_numeric($blogEntryId) && $blogEntryId > 0 && is_array($updates) && count($updates)) {
-			$validFields = array(
-				'post_timestamp'	=> 'datetime',
-				'content'			=> 'sql'
-			);
-			$updateThis = array_intersect_key($updates, $validFields);
-			if(is_array($updateThis) && count($updateThis)) {
-				
-				//encode teh content as before.
-				if(isset($updateThis['content'])) {
-					$updateThis['content'] = $this->encode_content($updateThis['content']);
-				}
-				
-				$sql = "UPDATE csblog_entry_table SET ". $this->gfObj->string_from_array($updateThis, 'update', NULL, $validFields)
-					." WHERE entry_id=". $blogEntryId;
-				
-				$this->db->beginTrans();
-				$numrows = $this->run_sql($sql);
-				
-				if($numrows == 1) {
-					$this->db->commitTrans();
-					$retval = true;
-				}
-				else {
-					$this->db->abortTrans();
-					throw new exception(__METHOD__ .": update failed, numrows=(". $numrows ."), dberror");
-				}
-			}
-			else {
-				throw new exception(__METHOD__ .": no valid fields in updates array");
-			}
-		}
-		else {
-			throw new exception(__METHOD__ .": invalid data passed");
-		}
-		
-		return($retval);
-	}//end update_entry()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
 	public function get_blog_entries(array $criteria, $orderBy, $limit=NULL, $offset=NULL) {
 		if(!is_array($criteria) || !count($criteria)) {
 			throw new exception(__METHOD__ .": invalid criteria");
@@ -706,39 +676,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		$retval = $this->blogLocation .'/'. $this->blogName .'/'. $permalink;
 		return($retval);
 	}//end get_full_permalink()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	public function parse_full_permalink($fullPermalink) {
-		
-		if(strlen($fullPermalink) && preg_match("/\//", $fullPermalink)) {
-			$fullPermalink = preg_replace("/^\//", "", $fullPermalink);
-			$parts = explode("/", $fullPermalink);
-			
-			if(count($parts) >= 3) {
-				$permalink = array_pop($parts);
-				$blogName = array_pop($parts);
-				$location = "/". $this->gfObj->string_from_array($parts, NULL, "/");
-				
-				$retval = array(
-					'location'	=> $location,
-					'blogName'	=> $blogName,
-					'permalink'	=> $permalink
-				);
-			}
-			else {
-				throw new exception(__METHOD__ .": not enough parts (i.e. location, blogName, & permalink) in " .
-						"full permalink (". $fullPermalink .")");
-			}
-		}
-		else {
-			throw new exception(__METHOD__ .": ");
-		}
-		
-		return($retval);
-	}//end parse_full_permalink()
 	//-------------------------------------------------------------------------
 	
 	

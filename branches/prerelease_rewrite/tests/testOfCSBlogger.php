@@ -24,6 +24,7 @@ class TestOfBlogger extends UnitTestCase {
 		require_once(dirname(__FILE__) .'/../csb_blog.class.php');
 		require_once(dirname(__FILE__) .'/../csb_blogUser.class.php');
 		require_once(dirname(__FILE__) .'/../csb_blogLocation.class.php');
+		require_once(dirname(__FILE__) .'/../csb_blogEntry.class.php');
 		
 		//define some constants.
 		{
@@ -37,6 +38,7 @@ class TestOfBlogger extends UnitTestCase {
 			define('CSBLOG_SETUP_PENDING', true);
 			
 			define('DEBUGPRINTOPT', 1);
+			define('DEBUGREMOVEHR', 1);
 		}
 		
 	}//end __construct()
@@ -316,7 +318,8 @@ class TestOfBlogger extends UnitTestCase {
 			
 			
 			
-			$updateRes = $this->blog->update_entry($updateEntryId, $updates);
+			$blogEntry = new csb_blogEntry($retrievedEntry['full_permalink'], $this->connParams);
+			$updateRes = $blogEntry->update_entry($updateEntryId, $updates);
 			$this->assertTrue($updateRes, "Failed to update (". $updateRes .")");
 			
 			//retrieve the updated entry & make sure it's good.
@@ -559,6 +562,37 @@ class TestOfBlogger extends UnitTestCase {
 	}//end test_permissions()
 	//-------------------------------------------------------------------------
 	
+	
+	
+	//-------------------------------------------------------------------------
+	function test_user_authentication() {
+		//test basic creation & password verification.
+		$user = preg_replace("/:/", "_", __METHOD__ ."-firstUser");
+		$pass = __METHOD__ ."-testing@veryERQ32423LoNgPASs";
+		$uid = $this->blog->create_user($user, $pass);
+		
+		$this->assertTrue(is_numeric($uid));
+		$userData = $this->blog->get_user($user);
+		
+		$this->assertTrue(is_array($userData), "Data retrieved for (". $user .") isn't an array...". $this->gf->debug_print($userData,0));
+		$this->assertEqual($userData['passwd'], md5($user .'-'. $pass));
+		$this->assertEqual($uid, $userData['uid']);
+		$this->assertEqual($user, $userData['username']);
+		
+		
+		//test a complex password.
+		$user = $user .'-2';
+		$pass = __METHOD__ ."!@#$%5^&*()_+-={}[]\\|';:\",./<>?";
+		$uid = $this->blog->create_user($user, $pass);
+		
+		$userData = $this->blog->get_user($user);
+		$this->assertTrue(is_array($userData));
+		$this->assertEqual($userData['passwd'], md5($user .'-'. $pass));
+		$this->assertEqual($uid, $userData['uid']);
+		$this->assertEqual($user, $userData['username']);
+		
+	}//end test_user_authentication()
+	//-------------------------------------------------------------------------
 	
 	
 	

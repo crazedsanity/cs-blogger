@@ -64,13 +64,16 @@ CREATE TABLE csblog_permission_table (
 --
 -- Table for holding comments.
 -- NOTE: even though the author is required (i.e. they must be logged-in), "is_anonymous" is set to make it appear as though it were anonymous.
+-- NOTE2: "ancestry" is for denoting how a comment is linked to other comments.  "10:12:15" indicates it's immediate parent is 15, grandparent 
+--		is 12, and thread origin is 10 (all numbers pertain to comment_id's). 
 --
 CREATE TABLE csblog_comment_table (
 	comment_id serial NOT NULL PRIMARY KEY,
-	blog_entry_id int NOT NULL REFERENCES csblog_entry_table(entry_id),
+	entry_id int NOT NULL REFERENCES csblog_entry_table(entry_id),
 	author_uid int NOT NULL REFERENCES cs_authentication_table(uid),
 	is_anonymous boolean NOT NULL DEFAULT false,
 	create_timestamp timestamp NOT NULL DEFAULT NOW(),
+	ancestry text,
 	title text NOT NULL,
 	comment text NOT NULL
 );

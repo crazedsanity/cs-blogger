@@ -107,21 +107,6 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 	
 	//-------------------------------------------------------------------------
 	/**
-	 * Takes an array for URL, like what contentSystem{} builds, and return the 
-	 * contents for the proper blog.
-	 */
-	public function display_blog(array $url) {
-		$fullPermalink = "/". $this->gfObj->string_from_array($url, null, '/');
-		$retval = $this->get_blog_entry($fullPermalink);
-		
-		return($retval);
-	}//end display_blog()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	/**
 	 * Creates a "permalink" just from title (does NOT include blog location):
 	 * lowercases, strips special characters, uses "_" in place of spaces and 
 	 * special characters (NEVER creates more than one "_" in a row)
@@ -439,7 +424,7 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 			}
 		}
 		else {
-			throw new exception(__METHOD__ .": ");
+			throw new exception(__METHOD__ .": invalid or non-full permalink given (". $fullPermalink .")");
 		}
 		
 		return($retval);
