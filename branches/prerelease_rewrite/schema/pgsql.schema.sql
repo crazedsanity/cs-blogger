@@ -61,6 +61,20 @@ CREATE TABLE csblog_permission_table (
 	uid integer NOT NULL REFERENCES cs_authentication_table(uid)
 );
 
+--
+-- Table for holding comments.
+-- NOTE: even though the author is required (i.e. they must be logged-in), "is_anonymous" is set to make it appear as though it were anonymous.
+--
+CREATE TABLE csblog_comment_table (
+	comment_id serial NOT NULL PRIMARY KEY,
+	blog_entry_id int NOT NULL REFERENCES csblog_entry_table(entry_id),
+	author_uid int NOT NULL REFERENCES cs_authentication_table(uid),
+	is_anonymous boolean NOT NULL DEFAULT false,
+	create_timestamp timestamp NOT NULL DEFAULT NOW(),
+	title text NOT NULL,
+	comment text NOT NULL
+);
+
 -- 
 -- Table to hold internal-only information, such as version number & such.
 -- 
@@ -69,6 +83,7 @@ CREATE TABLE csblog_internal_data_table (
 	internal_name text NOT NULL UNIQUE,
 	internal_value text NOT NULL
 );
+
 
 
 -- Add entries for users.
