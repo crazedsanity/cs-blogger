@@ -670,14 +670,5 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	//-------------------------------------------------------------------------
 	
 	
-	
-	//-------------------------------------------------------------------------
-	protected function get_full_permalink($permalink) {
-		$retval = $this->blogLocation .'/'. $this->blogName .'/'. $permalink;
-		return($retval);
-	}//end get_full_permalink()
-	//-------------------------------------------------------------------------
-	
-	
 }//end dataLayerAbstract{}
 ?>

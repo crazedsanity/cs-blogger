@@ -393,7 +393,19 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 	
 	//-------------------------------------------------------------------------
 	protected function get_full_permalink($permalink) {
-		$retval = $this->blogLocation .'/'. $this->blogName .'/'. $permalink;
+		if(!strlen($this->blogLocation)) {
+			throw new exception(__METHOD__ .": missing internal blogLocation (". $this->blogLocation .")");
+		}
+		elseif(!strlen($this->blogName)) {
+			throw new exception(__METHOD__ .": missing internal blogName (". $this->blogName .")");
+		}
+		elseif(!strlen($permalink)) {
+			throw new exception(__METHOD__ .": invalid/missing permalink (". $permalink .")");
+		}
+		else {
+			$retval = $this->blogLocation .'/'. $this->blogName .'/'. $permalink;
+		}
+		
 		return($retval);
 	}//end get_full_permalink()
 	//-------------------------------------------------------------------------

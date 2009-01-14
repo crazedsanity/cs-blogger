@@ -38,15 +38,14 @@ class csb_blogEntry extends csb_blogAbstract {
 		parent::__construct($dbParams);
 		
 		if(isset($fullPermalink) && strlen($fullPermalink)) {
-			$data = $this->get_blog_entry($fullPermalink);
-			$this->blogEntryId = $data['entry_id'];
 			
 			$bits = $this->parse_full_permalink($fullPermalink);
 			$this->blogLocation = $bits['location'];
+			$this->blogName = $bits['blogName'];
 			$this->permalink = $bits['permalink'];
 			
-			$this->blogCommentObj = new csb_blogComment($this->blogEntryId, $dbParams);
-			$this->numComments = $this->blogCommentObj->get_num_comments();
+			$data = $this->get_blog_entry($fullPermalink);
+			$this->blogEntryId = $data['entry_id'];
 		}
 		else {
 			throw new exception(__METHOD__ .": invalid permalink (". $fullPermalink .")");
