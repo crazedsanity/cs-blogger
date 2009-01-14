@@ -25,6 +25,7 @@ class TestOfBlogger extends UnitTestCase {
 		require_once(dirname(__FILE__) .'/../csb_blogUser.class.php');
 		require_once(dirname(__FILE__) .'/../csb_blogLocation.class.php');
 		require_once(dirname(__FILE__) .'/../csb_blogEntry.class.php');
+		require_once(dirname(__FILE__) .'/../csb_blogComment.class.php');
 		
 		//define some constants.
 		{
@@ -592,6 +593,75 @@ class TestOfBlogger extends UnitTestCase {
 		$this->assertEqual($user, $userData['username']);
 		
 	}//end test_user_authentication()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	function test_comments() {
+		//Create a test blog...
+		$uid = $this->blog->create_user(preg_replace('/:/', '_', __METHOD__), __METHOD__ ."-pass");
+		$blogId = $this->blog->create_blog(__METHOD__, $uid, "/test/blogger/". __METHOD__);
+		
+		//create an entry that we can comment on.
+		$newEntry = $this->blog->create_entry($blogId, $uid, __METHOD__, "A bunch of garbage.");
+		
+		$this->assertTrue(is_array($newEntry));
+		$this->assertTrue(is_numeric($newEntry['entry_id']));
+		$this->assertTrue(strlen($newEntry['full_permalink']));
+		
+		$obj = new csb_blogComment($newEntry['full_permalink'], $this->connParams);
+		$title = "Horse Shit";
+		$comment = "Garbage data in here.";
+		$commentId = $obj->add_comment($uid, $title, $comment);
+		
+		$this->assertTrue(is_numeric($commentId));
+		
+		$data = $obj->get_comment_by_id($commentId);
+		$this->assertEqual($data['title'], $title);
+		$this->assertEqual($data['comment'], $comment);
+		$this->assertEqual($data['comment_id'], $commentId);
+		$this->assertEqual($data['author_uid'], $uid);
+		$this->assertEqual($data['blog_id'], $blogId);
+		
+		//some assumed things...
+		$this->assertEqual($this->gf->interpret_bool($data['is_anonymous']), false);
+		$this->assertEqual($data['ancestry'], "");
+		
+		
+		//now let's create nested comments.
+		$familyTree = array(0=>$commentId);
+		$lastCount = count($familyTree);
+		$currentCount = $lastCount;
+		for($i=0;$i<=20;$i++) {
+			$lastCount=count($familyTree);
+			$newTitle = $title ."-". $i;
+			$newCommentId = $obj->add_comment($uid, $newTitle, $comment, $familyTree);
+			
+			$data = $obj->get_comment_by_id($newCommentId);
+			$this->assertEqual($data['title'], $newTitle);
+			$this->assertEqual($data['comment'], $comment);
+			$this->assertEqual($data['comment_id'], $newCommentId);
+			$this->assertEqual($data['author_uid'], $uid);
+			$this->assertEqual($data['blog_id'], $blogId);
+			
+			
+			//Here's the test we've all been waiting for:::
+			$expectAncestry = $this->gf->string_from_array($familyTree, null, ':');
+			$this->assertEqual(
+				$data['ancestry'],
+				$expectAncestry,
+				"Ancestry doesn't match for id=(". $newCommentId ."), expected (". $expectAncestry ."), got (". $data['ancestry'] .")"
+			);
+			
+			//Append the new ID so it'll be in the ancestry list next time.
+			$familyTree[] = $newCommentId;
+			$currentCount = count($familyTree);
+			$this->assertTrue($currentCount == $lastCount+1);
+		}
+		
+		
+	}//end test_comments()
 	//-------------------------------------------------------------------------
 	
 	
