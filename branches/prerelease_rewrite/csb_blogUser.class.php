@@ -51,6 +51,33 @@ class csb_blogUser extends csb_blogAbstract {
 	
 	
 	
+	//-------------------------------------------------------------------------
+	public function get_most_recent_blogs($numPerBlog=1) {
+		if(is_array($this->validBlogs) && count($this->validBlogs)) {
+			$retval = array();
+			foreach($this->validBlogs as $blogId=>$blogData) {
+				$blogName = $blogData['blog_name'];
+				$this->blogs[$blogName] = new csb_blog($blogName, $this->dbParams);
+				if(!$this->blogs[$blogName]->is_initialized()) {
+					$this->blogs[$blogName]->initialize_locals($blogName);
+				}
+				$retval[$blogName] = $this->blogs[$blogName]->get_recent_blogs($numPerBlog);
+				if($numPerBlog == 1) {
+					$keys = array_keys($retval[$blogName]);
+					$retval[$blogName] = $retval[$blogName][$keys[0]];
+				}
+			}
+		}
+		else {
+			throw new exception(__METHOD__ .": no valid blogs to handle");
+		}
+		
+		return($retval);
+	}//end get_most_recent_blogs()
+	//-------------------------------------------------------------------------
+	
+	
+	
     
 }
 ?>
