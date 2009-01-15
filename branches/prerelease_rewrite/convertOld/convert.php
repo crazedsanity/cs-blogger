@@ -156,6 +156,9 @@ class tmpConverter extends csb_blogAbstract {
 			$blogsCreated = 0;
 			foreach($data as $blogId=>$blogData) {
 				$newBlogId = $this->create_blog($blogData['blog_name'], $blogData['uid'], $blogData['location']);
+				unset($this->blogId);
+				$this->initialize_locals($blogData['blog_name']);
+				$this->update_blog_data(array('blog_display_name'=>ucfirst($blogData['blog_name']) ."'s Blog"));
 				$blogsCreated++;
 			}
 		}
