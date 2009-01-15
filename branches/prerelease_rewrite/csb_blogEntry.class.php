@@ -63,6 +63,7 @@ class csb_blogEntry extends csb_blogAbstract {
 	 * contents for the proper blog.
 	 */
 	public function display_blog(array $url) {
+		//TODO: this is very redundant; since this object already has the full permalink, why pass it again?
 		$fullPermalink = "/". $this->gfObj->string_from_array($url, null, '/');
 		$retval = $this->get_blog_entry($fullPermalink);
 		

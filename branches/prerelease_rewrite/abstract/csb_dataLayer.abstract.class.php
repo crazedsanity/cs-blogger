@@ -472,12 +472,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			$blogName = $parts['blogName'];
 			$location = $parts['location'];
 			
-			
-			//quick test to make sure it's sane.
-			if($location .'/'. $blogName .'/'. $permalink != $fullPermalink) {
-				throw new exception(__METHOD__ .": failed to parse full permalink (". $location .'/'. $blogName .'/'. $permalink ." != ". $fullPermalink .")");
-			}
-			
 			$data = $this->get_blog_entries(array('bl.location'=>$location,'be.permalink'=>$permalink),'be.entry_id');
 			
 			if(count($data) == 1) {
@@ -667,6 +661,35 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		
 		return($extraText);
 	}//end get_age_hype()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	protected function update_blog_data(array $updates) {
+		$sql = "UPDATE csblog_blog_table SET ". 
+				$this->gfObj->string_from_array($updates, 'update', null, 'sql') .
+				" WHERE blog_id=". $this->blogId;
+		
+		try {
+			$this->db->beginTrans();
+			$numrows = $this->run_sql($sql);
+			
+			if($numrows == 1) {
+				$retval = $numrows;
+				$this->db->commitTrans();
+			}
+			else {
+				throw new exception(__METHOD__ .": updated invalid number of rows (". $numrows .") - transaction aborted");
+			}
+		}
+		catch(exception $e) {
+			$this->db->rollbackTrans();
+			throw new exception(__METHOD__ .": failed to update blog (". $numrows .")");
+		}
+		
+		return($retval);
+	}//end update_blog_data()
 	//-------------------------------------------------------------------------
 	
 	

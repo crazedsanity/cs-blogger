@@ -1,6 +1,10 @@
 <?php
 
 require_once(dirname(__FILE__) .'/abstract/csb_dataLayer.abstract.class.php');
+require_once(dirname(__FILE__) .'/abstract/csb_blog.abstract.class.php');
+
+
+//TODO: this should extend csb_blogAbstract{}
 
 class csb_permission extends csb_dataLayerAbstract {
 
@@ -48,9 +52,23 @@ class csb_permission extends csb_dataLayerAbstract {
 	
 	//-------------------------------------------------------------------------
 	public function can_access_blog($blogId, $uid) {
-		if(is_numeric($blogId) && is_numeric($uid)) {
+		if(strlen($blogId) && (is_numeric($uid) || strlen($uid))) {
 			
 			try {
+				if(!is_numeric($uid)) {
+					$uid = $this->get_uid($uid);
+				}
+				if(!is_numeric($blogId)) {
+					//TODO: if this extended csb_blogAbstract{}, call get_blog_data_by_name() to make this easier.
+					$blogData = $this->get_blogs(array('blog_name'=>$blogId));
+					if(count($blogData) == 1) {
+						$keys = array_keys($blogData);
+						$blogId = $keys[0];
+					}
+					else {
+						throw new exception(__METHOD__ .": too many records found for blog name (". $blogId .")");
+					}
+				}
 				//if this call doesn't cause an exception, we're good to go (add extra logic anyway)
 				$blogData = $this->get_blogs(array('blog_id'=>$blogId, 'uid'=>$uid));
 				if(is_array($blogData) && count($blogData) == 1 && $blogData[$blogId]['uid'] == $uid) {
@@ -77,8 +95,8 @@ class csb_permission extends csb_dataLayerAbstract {
 			}
 		}
 		else {
-			cs_debug_backtrace($this->gfObj->debugPrintOpt);
-			throw new exception(__METHOD__ .": invalid data for blogId (". $blogId .") or uid (". $uid .")");
+			//they gave invalid data; default to no access.
+			$retval = false;
 		}
 		
 		return($retval);
