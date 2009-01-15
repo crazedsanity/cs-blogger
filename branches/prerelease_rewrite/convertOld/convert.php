@@ -56,6 +56,7 @@ class tmpConverter extends csb_blogAbstract {
 		$this->gfObj->debugPrintOpt = 1;
 		
 		parent::__construct($newDbParms);
+		$this->dbParams = $newDbParms;
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
@@ -188,8 +189,9 @@ class tmpConverter extends csb_blogAbstract {
 			$data = $this->oldDb->farray_fieldnames('blog_access_id', true);
 			
 			$numPerms = 0;
+			$permObj = new csb_permission($this->dbParams);
 			foreach($data as $blogAccessId => $permData) {
-				$res = $this->add_permission($permData['blog_id'], $permData['uid']);
+				$res = $permObj->add_permission($permData['blog_id'], $permData['uid']);
 				$numPerms++;
 			}
 		}
@@ -215,33 +217,38 @@ class tmpConverter extends csb_blogAbstract {
 	//-------------------------------------------------------------------------
 	private function convert_entries() {
 		//retrieve the list of entries from the database.
-		$numrows = $this->oldDb->exec("SELECT * FROM cs_blog_entry_table");
+		$numrows = $this->oldDb->exec("SELECT be.*, b.blog_name FROM cs_blog_entry_table AS be INNER JOIN " .
+				"cs_blog_table AS b ON (b.blog_id=be.blog_id)");
 		$dberror = $this->oldDb->errorMsg();
 		
 		if($numrows > 0 && !strlen($dberror)) {
-			$data = $this->oldDb->farray_fieldnames('blog_entry_id', true);
+			$data = $this->oldDb->farray_fieldnames('be.blog_entry_id', true);
 			
-			#$this->gfObj->debug_print(__METHOD__ .": retrieved (". $numrows .") records... TODO: CONVERT THEM");
 			
 			$numCreated = 0;
 			foreach($data as $entryId=>$entryData) {
-				$entryText = $this->fsObj->read($entryData['permalink'] .'.blog');
+				unset($this->blogId);
+				$this->initialize_locals($entryData['b.blog_name']);
+				$entryText = $this->fsObj->read($entryData['be.permalink'] .'.blog');
+				
 				
 				//remove doubled-up single quotes (problem with quoting in the old system)
 				$fixRegex = "/[']{2,}/";
-				$entryData['title'] = preg_replace($fixRegex, "'", $entryData['title']);
+				$entryData['be.title'] = preg_replace($fixRegex, "'", $entryData['be.title']);
 				
 				//remove block row definitions from within the entry text
 				$entryText = preg_replace("/<!-- BEGIN (.+) -->/", "", $entryText);
 				$entryText = preg_replace("/<!-- END (.+) -->/", "", $entryText);
 				
+				//get blog data...
+				
 				//we've got everything; create the entry.
 				$result = $this->create_entry(
-					$entryData['blog_id'],
-					$entryData['author_uid'],
-					$entryData['title'],
+					$entryData['be.blog_id'],
+					$entryData['be.author_uid'],
+					$entryData['be.title'],
 					$entryText,
-					array('post_timestamp'	=> $this->fix_timestamp($entryData['post_timestamp']))
+					array('post_timestamp'	=> $this->fix_timestamp($entryData['be.post_timestamp']))
 				);
 				$numCreated++;
 			}
