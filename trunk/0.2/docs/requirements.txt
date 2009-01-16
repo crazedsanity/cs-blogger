@@ -1,0 +1,33 @@
+CS-Blogger Requirements Documentation
+
+Important Note: This blogger project was developed as a custom solution for my own personal website, and is therefore a partially completed product (it works for my needs, but isn't portable).  Several features were not included in the original implementation that are also laid-out here.
+
+REQUIRED CONSTANTS:
+1.CS_BLOGRWDIR (readable/writable directory to store blogs)
+
+Required Capabilities:
+	1 ) Use existing authentication mechanism (no such system supplied)
+		1.1 ) File with mappings from authentication system to blog authors
+	2 ) Users accessing multiple blogs
+	3 ) Options for display
+		3.1 ) Shortened displays
+			3.1.1 ) Based on Blog
+			3.1.2 ) Based on User
+		3.2 ) Full  displays
+			3.2.1 ) single entry
+			3.2.2 ) most recent X entries for single user
+			3.2.3 ) most recent X entries for single blog
+	4 ) Define user access to multiple blogs
+	5 ) Commenting on blogs
+
+Optional Features:
+	1 ) Pagination
+		1.1 ) Predetermined limit for number of entries per page
+		1.1 ) Display of page number list should be simple and programmatic
+	2 ) Image uploads
+	3 ) Searching
+		3.1 ) author
+		3.2 ) title
+		3.3 ) date
+		3.4 ) content
+
