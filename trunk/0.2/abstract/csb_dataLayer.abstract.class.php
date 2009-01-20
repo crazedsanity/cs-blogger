@@ -49,7 +49,12 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		if($this->isConnected === false) {
 			if(is_array($this->dbParams)) {
 				$this->db = new cs_phpDB('pgsql');
-				$this->db->connect($this->dbParams);
+				try {
+					$this->db->connect($this->dbParams);
+				}
+				catch(exception $e) {
+					throw new exception(__METHOD__ .": failed to connect to database, DETAILS: ". $e->getMessage());
+				}
 				
 				//NOTE: if the call to "connect()" fails, it should throw an exception.
 				$this->isConnected=true;
@@ -71,10 +76,20 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 					if(defined($constant)) {
 						$value = constant($constant);
 					}
+					else {
+						if($index != 'password') {
+							throw new exception(__METHOD__ .": missing one or more constants for database connectivity (". $constant .")");
+						}
+					}
 					$dbParams[$index] = $value;
 				}
 				$this->db = new cs_phpDB('pgsql');
-				$this->db->connect($dbParams);
+				try {
+					$this->db->connect($dbParams);
+				}
+				catch(exception $e) {
+					throw new exception(__METHOD__ .": failed to connect to database using constants, DETAILS: ". $e->getMessage());
+				}
 				
 				//NOTE: if the call to "connect()" fails, it should throw an exception.
 				$this->isConnected = true;
