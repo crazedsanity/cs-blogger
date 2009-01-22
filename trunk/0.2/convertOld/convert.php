@@ -19,11 +19,11 @@ $oldDbParams = array(
 	
 );
 $newDbParams = array(
-	'host'		=> "localhost",
-	'port'		=> 5432,
-	'dbname'	=> "cs",
-	'user'		=> "postgres",
-	'password'	=> ""
+	'host'		=> constant('CSBLOG_DB_HOST'),
+	'port'		=> constant('CSBLOG_DB_PORT'),
+	'dbname'	=> constant('CSBLOG_DB_DBNAME'),
+	'user'		=> constant('CSBLOG_DB_USER'),
+	'password'	=> constant('CSBLOG_DB_PASSWORD'),
 );
 
 // LOOK TO THE BOTTOM FOR ACTUAL CODE....
