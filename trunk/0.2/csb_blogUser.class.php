@@ -61,11 +61,19 @@ class csb_blogUser extends csb_blogAbstract {
 				if(!$this->blogs[$blogName]->is_initialized()) {
 					$this->blogs[$blogName]->initialize_locals($blogName);
 				}
-				$retval[$blogName] = $this->blogs[$blogName]->get_recent_blogs($numPerBlog);
-				if($numPerBlog == 1) {
-					$keys = array_keys($retval[$blogName]);
-					$retval[$blogName] = $retval[$blogName][$keys[0]];
+				
+				$recentBlogs = array();
+				try {
+					$recentBlogs = $this->blogs[$blogName]->get_recent_blogs($numPerBlog);
+					if($numPerBlog == 1) {
+						$keys = array_keys($retval[$blogName]);
+						$recentBlogs = $retval[$blogName][$keys[0]];
+					}
 				}
+				catch(exception $e) {
+					$this->gfObj->debug_print(__METHOD__ .": no blogs for (". $blogName .")");
+				}
+				$retval[$blogName] = $recentBlogs;
 			}
 		}
 		else {
