@@ -518,9 +518,10 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		
 		//TODO: should be specifically limited to blogs that are accessible to current user.
 		$sql = "SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short, " .
-				"b.blog_name FROM csblog_entry_table AS be INNER JOIN " .
+				"b.blog_name, a.username FROM csblog_entry_table AS be INNER JOIN " .
 				"csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN " .
-				"csblog_location_table AS bl ON (b.location_id=bl.location_id) WHERE ";
+				"csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN " .
+				"cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE ";
 		
 		//add stuff to the SQL...
 		foreach($criteria as $field=>$value) {
@@ -555,6 +556,8 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			$retval[$entryId]['formatted_post_timestamp'] = 
 					strftime('%A, %B %d, %Y %I:%M %p', strtotime($data['post_timestamp']));
 			
+			//format the username...
+			$retval[$entryId]['formatted_author_name'] = ucwords($data['username']);
 		}
 		
 		return($retval);
