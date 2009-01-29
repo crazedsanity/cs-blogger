@@ -7,9 +7,6 @@ require_once(dirname(__FILE__) .'/../lib/cs-blogger/csb_blogEntry.class.php');
 
 $page->rip_all_block_rows();
 
-//they're just viewing the /blog page; show list of member's blogs.
-$fs = new cs_fileSystemClass(CS_BLOGRWDIR);
-
 $page->add_template_var('html_title', 'Member Blogs - CrazedSanity.com');
 if(count($sectionArr) == 1 || (count($sectionArr) == 2 && $sectionArr[1] == 'index')) {
 	//show most recent entries for all blogs.

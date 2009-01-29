@@ -6,9 +6,9 @@
  */
 
 require_once(dirname(__FILE__) .'/../../siteConfig.php');
-require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.php');
-require_once(dirname(__FILE__) .'/../../cs-content/cs_globalFunctions.php');
-require_once(dirname(__FILE__) .'/../../cs-content/cs_fileSystemClass.php');
+require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.class.php');
+require_once(dirname(__FILE__) .'/../../cs-content/cs_globalFunctions.class.php');
+require_once(dirname(__FILE__) .'/../../cs-content/cs_fileSystem.class.php');
 require_once(dirname(__FILE__) .'/../abstract/csb_blog.abstract.class.php');
 
 
@@ -50,7 +50,7 @@ class tmpConverter extends csb_blogAbstract {
 		$this->oldDb = new cs_phpDB('sqlite');
 		$this->oldDb->connect($oldDbParms);
 		
-		$this->fsObj = new cs_fileSystemClass(constant('CS_BLOGRWDIR'));
+		$this->fsObj = new cs_fileSystem(constant('CS_BLOGRWDIR'));
 		
 		$this->gfObj = new cs_globalFunctions;
 		$this->gfObj->debugPrintOpt = 1;
