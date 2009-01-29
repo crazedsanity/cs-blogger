@@ -456,6 +456,9 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 				'entry_id'		=> $this->db->get_currval('csblog_entry_table_entry_id_seq'),
 				'full_permalink'	=> $this->get_full_permalink($sqlArr['permalink'])
 			);
+			
+			//one final thing: update the main blog table with the newest post_timestamp.
+			$this->update_blog_last_post_timestamps();
 		}
 		else {
 			throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to insert data");
@@ -611,79 +614,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	protected function get_age_hype($timestamp, $addBrackets=FALSE) {
-		if(strlen($timestamp >= 9)) {
-			if(!is_numeric($timestamp)) {
-				$timestamp = strtotime($timestamp);
-			}
-			
-			$age = time() - $timestamp;
-			switch($age) {
-				case ($age <= 1800): {
-					$extraText = '<font color="red"><b>Ink\'s still WET!</b></font>';
-				} break;
-				
-				case ($age <= 3600): {
-					//modified less than an hour ago!
-					$extraText = '<font color="red"><b>Hot off the press!</b></font>';
-				} break;
-				
-				case ($age <= 86400): {
-					//modified less than 24 hours ago.
-					$extraText = '<font color="red"><b>New!</b></font>';
-				} break;
-				
-				case ($age <= 604800): {
-					//modified this week.
-					$extraText = '<font color="red">Less than a week old</font>';
-				} break;
-				
-				case ($age <= 2592000): {
-					//modified this month.
-					$extraText = '<b>Less than a month old</b>';
-				} break;
-				
-				case ($age <= 5184000): {
-					//modified in the last 2 months
-					$extraText = '<b>Updated last month</b>';
-				} break;
-				
-				case ($age <= 7776000): {
-					$extraText = '<i>Updated 3 months ago</i>';
-				} break;
-				
-				case ($age <= 10368000): {
-					$extraText = '<i>Updated 4 months ago</i>';
-				} break;
-				
-				case ($age <= 12960000): {
-					$extraText = '<i>Updated 5 months ago</i>';
-				} break;
-				
-				case ($age <= 15552000): {
-					$extraText = '<i>Updated in the last 6 months</i>';
-				} break;
-				
-				default: {
-					$extraText  = '<i>pretty old</i>';
-				}
-			}
-			
-			if(strlen($extraText) && $addBrackets) {
-				$extraText = '['. $extraText .']';
-			}
-		}
-		else {
-			throw new exception(__METHOD__ .": invalid timestamp (". $timestamp .")");
-		}
-		
-		return($extraText);
-	}//end get_age_hype()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
 	protected function update_blog_data(array $updates) {
 		$sql = "UPDATE csblog_blog_table SET ". 
 				$this->gfObj->string_from_array($updates, 'update', null, 'sql') .
@@ -708,6 +638,25 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		
 		return($retval);
 	}//end update_blog_data()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	protected  function update_blog_last_post_timestamps() {
+		$sql = "update csblog_blog_table AS b SET last_post_timestamp=" .
+				"(SELECT post_timestamp FROM csblog_entry_table WHERE " .
+				"blog_id=b.blog_id ORDER BY post_timestamp DESC limit 1)";
+		
+		try {
+			$retval = $this->run_sql($sql);
+		}
+		catch(exception $e) {
+			throw new exception(__METHOD__ .": failed to update last_post_timestamp for blogs, DETAILS::: ". $e->getMessage());
+		}
+		
+		return($retval);
+	}//end update_blog_last_post_timestamps()
 	//-------------------------------------------------------------------------
 	
 	

@@ -104,6 +104,7 @@ class csb_blogEntry extends csb_blogAbstract {
 				$numrows = $this->run_sql($sql);
 				
 				if($numrows == 1) {
+					$this->update_blog_last_post_timestamps();
 					$this->db->commitTrans();
 					$retval = true;
 				}

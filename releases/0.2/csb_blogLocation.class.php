@@ -24,7 +24,7 @@ class csb_blogLocation extends csb_blogAbstract {
 		);
 		
 		try {
-    		$this->validBlogs = $this->get_blogs($criteria, 'last_post_timestamp DESC');
+    		$this->validBlogs = $this->get_blogs($criteria, 'blog_display_name DESC');
 		}
 		catch(exception $e) {
 			throw new exception(__METHOD__ .": failed to retrieve any valid blogs for location=(". $location .")... " .
