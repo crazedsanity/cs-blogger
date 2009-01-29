@@ -456,6 +456,9 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 				'entry_id'		=> $this->db->get_currval('csblog_entry_table_entry_id_seq'),
 				'full_permalink'	=> $this->get_full_permalink($sqlArr['permalink'])
 			);
+			
+			//one final thing: update the main blog table with the newest post_timestamp.
+			$this->update_blog_last_post_timestamps();
 		}
 		else {
 			throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to insert data");
@@ -635,6 +638,25 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		
 		return($retval);
 	}//end update_blog_data()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	protected  function update_blog_last_post_timestamps() {
+		$sql = "update csblog_blog_table AS b SET last_post_timestamp=" .
+				"(SELECT post_timestamp FROM csblog_entry_table WHERE " .
+				"blog_id=b.blog_id ORDER BY post_timestamp DESC limit 1)";
+		
+		try {
+			$retval = $this->run_sql($sql);
+		}
+		catch(exception $e) {
+			throw new exception(__METHOD__ .": failed to update last_post_timestamp for blogs, DETAILS::: ". $e->getMessage());
+		}
+		
+		return($retval);
+	}//end update_blog_last_post_timestamps()
 	//-------------------------------------------------------------------------
 	
 	
