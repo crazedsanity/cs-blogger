@@ -80,7 +80,7 @@ class TestOfBlogger extends UnitTestCase {
 		//setup some local objects for use later.
 		$this->gf = new cs_globalFunctions;
 		$this->gf->debugPrintOpt=1;
-		$this->fs = new cs_fileSystemClass(CSBLOG__RWDIR);
+		$this->fs = new cs_fileSystem(CSBLOG__RWDIR);
 		
 		$this->assertTrue(function_exists('pg_connect'));
 		

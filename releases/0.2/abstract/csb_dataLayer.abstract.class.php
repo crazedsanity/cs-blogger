@@ -1,7 +1,7 @@
 <?php
 
-require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.php');
-require_once(dirname(__FILE__) .'/../../cs-content/cs_globalFunctions.php');
+require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.class.php');
+require_once(dirname(__FILE__) .'/../../cs-content/cs_globalFunctions.class.php');
 require_once(dirname(__FILE__) .'/../../cs-versionparse/cs_version.abstract.class.php');
 require_once(dirname(__FILE__) .'/../csb_location.class.php');
 require_once(dirname(__FILE__) .'/../csb_permission.class.php');
@@ -156,7 +156,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		$retval = false;
 		$this->connect_db();
 		$this->db->beginTrans();
-		$fs = new cs_fileSystemClass(dirname(__FILE__) .'/../schema');
+		$fs = new cs_fileSystem(dirname(__FILE__) .'/../schema');
 		$mySchema = $fs->read(self::DBTYPE .'.schema.sql');
 		
 		$retval = $this->db->exec($mySchema);
