@@ -64,7 +64,7 @@ class csb_blogUser extends csb_blogAbstract {
 				
 				$recentBlogs = array();
 				try {
-					$recentBlogs = $this->blogs[$blogName]->get_recent_blogs($numPerBlog);
+					$recentBlogs = $this->blogs[$blogName]->get_recent_blogs($numPerBlog, 0, true);
 					if($numPerBlog == 1) {
 						$keys = array_keys($retval[$blogName]);
 						$recentBlogs = $retval[$blogName][$keys[0]];

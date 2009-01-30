@@ -87,7 +87,8 @@ class csb_blogEntry extends csb_blogAbstract {
 		if(is_numeric($blogEntryId) && $blogEntryId > 0 && is_array($updates) && count($updates)) {
 			$validFields = array(
 				'post_timestamp'	=> 'datetime',
-				'content'			=> 'sql'
+				'content'			=> 'sql',
+				'is_draft'			=> 'boolean'
 			);
 			$updateThis = array_intersect_key($updates, $validFields);
 			if(is_array($updateThis) && count($updateThis)) {
