@@ -367,11 +367,18 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	public function get_recent_blogs($limit=5, $offset=0) {
+	public function get_recent_blogs($limit=5, $offset=0, $includeDrafts=false) {
 		if(is_numeric($this->blogId)) {
 			if(is_numeric($limit) && $limit > 0) {
 				if(is_numeric($offset) && $offset >= 0) {
-					$retval = $this->get_blog_entries(array('blog_id'=>$this->blogId), 'post_timestamp DESC', $limit, $offset);
+					$criteria = array(
+						'blog_id'	=> $this->blogId,
+						'is_draft'	=> 'f'
+					);
+					if($includeDrafts === true) {
+						unset($criteria['is_draft']);
+					}
+					$retval = $this->get_blog_entries($criteria, 'post_timestamp DESC', $limit, $offset);
 				}
 				else {
 					throw new exception(__METHOD__ .": invalid offset (". $offset .")");

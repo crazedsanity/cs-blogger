@@ -30,7 +30,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
    	function __construct(array $dbParams=NULL) {
 		$this->set_version_file_location(dirname(__FILE__) . '/../VERSION');
 		$this->gfObj = new cs_globalFunctions();
-		$this->gfObj->debugPrintOpt=1;
 		
 		//check that some required constants exist.
 		if(!defined('CSBLOG_TITLE_MINLEN')) {
@@ -161,12 +160,12 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		
 		$retval = $this->db->exec($mySchema);
 		
-		$internalValues = $this->get_version(true);
-		foreach($internalValues as $name=>$value) {
-			$sql = "INSERT INTO csblog_internal_data_table (internal_name, internal_value) " .
-					"VALUES ('". $name ."', '". $value ."')";
-			$this->run_sql($sql);
-		}
+		#$internalValues = $this->get_version(true);
+		#foreach($internalValues as $name=>$value) {
+		#	$sql = "INSERT INTO csblog_internal_data_table (internal_name, internal_value) " .
+		#			"VALUES ('". $name ."', '". $value ."')";
+		#	$this->run_sql($sql);
+		#}
 		
 		$retval = 1;
 		$this->db->commitTrans();
@@ -412,9 +411,10 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		//only allow a few other optional fields (make sure they're the appropriate data type).
 		if(is_array($optionalData) && count($optionalData)) {
 			
-			//there's only one option right now... but this makes it easy to update later.
+			//Valid optional fields are defined here.
 			$validOptionalFields = array(
-				'post_timestamp'	=> 'datetime'
+				'post_timestamp'	=> 'datetime',
+				'is_draft'			=> 'boolean'
 			);
 			
 			$intersectedArray = array_intersect_key($optionalData, $validOptionalFields);
@@ -490,7 +490,8 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			$blogName = $parts['blogName'];
 			$location = $parts['location'];
 			
-			$data = $this->get_blog_entries(array('bl.location'=>$location,'be.permalink'=>$permalink),'be.entry_id');
+			$criteria = array('bl.location'=>$location, 'b.blog_name'=>$blogName,'be.permalink'=>$permalink);
+			$data = $this->get_blog_entries($criteria,'be.entry_id');
 			
 			if(count($data) == 1) {
 				$keys = array_keys($data);
@@ -561,6 +562,9 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			
 			//format the username...
 			$retval[$entryId]['formatted_author_name'] = ucwords($data['username']);
+			
+			//make "is_draft" a real boolean.
+			$retval[$entryId]['is_draft'] = $this->gfObj->interpret_bool($data['is_draft']);
 		}
 		
 		return($retval);

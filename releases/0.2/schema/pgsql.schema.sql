@@ -38,7 +38,8 @@ CREATE TABLE csblog_entry_table (
 	content text NOT NULL,
 	post_timestamp timestamp NOT NULL DEFAULT NOW(),
 	permalink text NOT NULL,
-	title text NOT NULL
+	title text NOT NULL,
+	is_draft boolean NOT NULL DEFAULT false
 );
 CREATE UNIQUE INDEX csblog_entry_table_permalink_blog_id_uidx ON csblog_entry_table USING btree (permalink,blog_id);
 
@@ -76,15 +77,6 @@ CREATE TABLE csblog_comment_table (
 	ancestry text,
 	title text NOT NULL,
 	comment text NOT NULL
-);
-
--- 
--- Table to hold internal-only information, such as version number & such.
--- 
-CREATE TABLE csblog_internal_data_table (
-	internal_data_id serial NOT NULL PRIMARY KEY,
-	internal_name text NOT NULL UNIQUE,
-	internal_value text NOT NULL
 );
 
 
