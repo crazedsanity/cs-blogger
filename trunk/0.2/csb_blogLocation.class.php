@@ -11,6 +11,9 @@ class csb_blogLocation extends csb_blogAbstract {
 	/** An array with sub-arrays listing by blog_id, name, etc. */
 	protected $blogIndex;
 	
+	/** List of blogs available for the given location. */
+	protected $blogs = array();
+	
 	//-------------------------------------------------------------------------
     function __construct($location, array $dbParams=null) {
     	parent::__construct($dbParams);
