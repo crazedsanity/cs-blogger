@@ -2,7 +2,7 @@
 
 require_once(dirname(__FILE__) .'/../../cs-content/cs_phpDB.class.php');
 require_once(dirname(__FILE__) .'/../../cs-content/cs_globalFunctions.class.php');
-require_once(dirname(__FILE__) .'/../../cs-webapplibs/cs_version.abstract.class.php');
+require_once(dirname(__FILE__) .'/../../cs-content/abstract/cs_version.abstract.class.php');
 require_once(dirname(__FILE__) .'/../csb_location.class.php');
 require_once(dirname(__FILE__) .'/../csb_permission.class.php');
 
