@@ -662,7 +662,7 @@ class testOfCSBlogger extends UnitTestCase {
 	
 	
 	
-}//end TestOfBlogger
+}//end testOfCSBlogger
 //=============================================================================
 
 ?>
