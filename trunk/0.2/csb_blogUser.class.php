@@ -55,6 +55,7 @@ class csb_blogUser extends csb_blogAbstract {
 	public function get_most_recent_blogs($numPerBlog=1) {
 		if(is_array($this->validBlogs) && count($this->validBlogs)) {
 			$retval = array();
+			$this->blogs = array();
 			foreach($this->validBlogs as $blogId=>$blogData) {
 				$blogName = $blogData['blog_name'];
 				$this->blogs[$blogName] = new csb_blog($blogName, $this->dbParams);
