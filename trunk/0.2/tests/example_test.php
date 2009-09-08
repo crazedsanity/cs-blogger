@@ -14,7 +14,7 @@
 
 require_once(dirname(__FILE__) .'/testOfCSBlogger.php');
 
-$test = &new TestOfBlogger();
+$test = &new testOfCSBlogger();
 $test->run(new HtmlReporter());
 
 ?>

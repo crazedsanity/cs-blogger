@@ -15,7 +15,7 @@
 
 
 //=============================================================================
-class TestOfBlogger extends UnitTestCase {
+class testOfCSBlogger extends UnitTestCase {
 	
 	
 	//-------------------------------------------------------------------------
@@ -62,17 +62,12 @@ class TestOfBlogger extends UnitTestCase {
 		#define('CSBLOG__RWDIR', dirname(__FILE__) .'/../../rw/testblogger');
 		#define('CSBLOG__DBNAME', 'simpletestblog.db');
 		
-		define('CSBLOG_DB_HOST',		'localhost');
-		define('CSBLOG_DB_PORT',		'5432');
-		define('CSBLOG_DB_DBNAME',		'csblogger_test');
-		define('CSBLOG_DB_USER',		'postgres');
-		define('CSbLOG_DB_PASSWORD',	'');
 		$this->connParams = array(
-			'host'		=> "localhost",
-			'port'		=> "5432",
-			'dbname'	=> "csblogger_test",
-			'user'		=> "postgres",
-			'password'	=> ""
+			'host'		=> constant('CSBLOG_DB_HOST'),
+			'port'		=> constant('CSBLOG_DB_PORT'),
+			'dbname'	=> constant('CSBLOG_DB_DBNAME'),
+			'user'		=> constant('CSBLOG_DB_USER'),
+			'password'	=> constant('CSBLOG_DB_PASSWORD')
 		);
 		
 		
