@@ -6,7 +6,6 @@
  */
 
 
-require_once(dirname(__FILE__) .'/csb_blog.class.php');
 
 class csb_blogUser extends csb_blogAbstract {
 	

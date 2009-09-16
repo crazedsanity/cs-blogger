@@ -1,7 +1,5 @@
 <?php
 
-require_once(dirname(__FILE__) .'/abstract/csb_blog.abstract.class.php');
-require_once(dirname(__FILE__) .'/csb_blogEntry.class.php');
 
 //TODO: consider moving add_comment() and get_comments() to csb_dataLayerAbstract{}, since they're data-type things.
 

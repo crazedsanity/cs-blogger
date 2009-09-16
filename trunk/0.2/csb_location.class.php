@@ -1,6 +1,5 @@
 <?php
 
-require_once(dirname(__FILE__) .'/abstract/csb_dataLayer.abstract.class.php');
 
 class csb_location extends csb_dataLayerAbstract {
 

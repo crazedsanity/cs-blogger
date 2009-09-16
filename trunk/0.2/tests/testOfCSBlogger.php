@@ -21,11 +21,6 @@ class testOfCSBlogger extends UnitTestCase {
 	//-------------------------------------------------------------------------
 	function __construct() {
 		$this->UnitTestCase();
-		require_once(dirname(__FILE__) .'/../csb_blog.class.php');
-		require_once(dirname(__FILE__) .'/../csb_blogUser.class.php');
-		require_once(dirname(__FILE__) .'/../csb_blogLocation.class.php');
-		require_once(dirname(__FILE__) .'/../csb_blogEntry.class.php');
-		require_once(dirname(__FILE__) .'/../csb_blogComment.class.php');
 		
 		//define some constants.
 		{
@@ -41,6 +36,9 @@ class testOfCSBlogger extends UnitTestCase {
 			define('DEBUGPRINTOPT', 1);
 			define('DEBUGREMOVEHR', 1);
 		}
+		
+		$this->gfObj = new cs_globalFunctions;
+		$this->gfObj->debugPrintOpt=1;
 		
 	}//end __construct()
 	//-------------------------------------------------------------------------
@@ -447,7 +445,6 @@ class testOfCSBlogger extends UnitTestCase {
 		
 		$testLocNum=0;
 		foreach($locationsArr as $locName=>$num) {
-			$this->gf->debug_print(__METHOD__ .": loop #". $testLocNum);
 			$blog = new csb_blogLocation($locName, $this->connParams);
 			
 			//get just one entry per blog name.
@@ -488,7 +485,6 @@ class testOfCSBlogger extends UnitTestCase {
 		$existingLocations = array();
 		try {
 			$existingLocations = $locObj->get_locations();
-			$this->gf->debug_print(__METHOD__ .": locations already exist... ". $this->gf->debug_print($existingLocations,0));
 			throw new exception(__METHOD__ .": locations already exist... ". $e->getMessage());
 		}
 		catch(exception $e) {
@@ -544,10 +540,18 @@ class testOfCSBlogger extends UnitTestCase {
 			$this->assertTrue(is_numeric($user2uid[$username]));
 			
 			if(!is_null($blogName)) {
-				$user2blog[$username] = $this->blog->create_blog($blogName, $username, $location);
+				$createRes = $this->blog->create_blog($blogName, $username, $location);
+				$user2blog[$username] = $createRes;
+				$this->assertTrue(is_numeric($createRes));
 			}
 			else {
-				$this->gf->debug_print(__METHOD__ .": skipping user (". $username ."), no blogName");
+				try {
+					$createRes = $this->blog->create_blog($blogName, $username, $location);
+					$this->assertTrue(false, "created blog without valid blog name");
+				}
+				catch(exception $e) {
+					$this->assertTrue(true);
+				}
 			}
 		}
 		

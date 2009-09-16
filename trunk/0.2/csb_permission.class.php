@@ -1,7 +1,5 @@
 <?php
 
-require_once(dirname(__FILE__) .'/abstract/csb_dataLayer.abstract.class.php');
-require_once(dirname(__FILE__) .'/abstract/csb_blog.abstract.class.php');
 
 
 //TODO: this should extend csb_blogAbstract{}

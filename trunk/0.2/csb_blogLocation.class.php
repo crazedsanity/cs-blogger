@@ -1,7 +1,6 @@
 <?php
 
 
-require_once(dirname(__FILE__) .'/csb_blog.class.php');
 
 class csb_blogLocation extends csb_blogAbstract {
 	

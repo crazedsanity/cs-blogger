@@ -1,7 +1,5 @@
 <?php
 
-require_once(dirname(__FILE__) .'/abstract/csb_blog.abstract.class.php');
-require_once(dirname(__FILE__) .'/csb_blogComment.class.php');
 
 class csb_blogEntry extends csb_blogAbstract {
 	

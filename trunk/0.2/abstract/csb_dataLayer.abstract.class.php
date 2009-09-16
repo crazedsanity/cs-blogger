@@ -1,10 +1,5 @@
 <?php
 
-require_once(dirname(__FILE__) .'/../../cs-webapplibs/cs_phpDB.class.php');
-require_once(dirname(__FILE__) .'/../../cs-content/cs_globalFunctions.class.php');
-require_once(dirname(__FILE__) .'/../../cs-content/abstract/cs_version.abstract.class.php');
-require_once(dirname(__FILE__) .'/../csb_location.class.php');
-require_once(dirname(__FILE__) .'/../csb_permission.class.php');
 
 
 abstract class csb_dataLayerAbstract extends cs_versionAbstract {
@@ -93,9 +88,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 				//NOTE: if the call to "connect()" fails, it should throw an exception.
 				$this->isConnected = true;
 			}
-		}
-		else {
-			$this->gfObj->debug_print(__METHOD__ .": already connected");
 		}
 	}//end connect_db()
 	//-------------------------------------------------------------------------
@@ -253,7 +245,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 				$retval = $this->db->farray_fieldnames();
 			}
 			elseif($numrows == 0) {
-				$retval = false;
+				throw new exception(__METHOD__ .": invalid user (". $username .")");
 			}
 			else {
 				throw new exception(__METHOD__ .": invalid numrows (". $numrows .")");
@@ -271,7 +263,12 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	
 	//-------------------------------------------------------------------------
 	public function get_uid($username) {
-		$data = $this->get_user($username);
+		try {
+			$data = $this->get_user($username);
+		}
+		catch(exception $e) {
+			$data = false;
+		}
 		if(is_bool($data) && $data === false) {
 			$retval = $data;
 		}
