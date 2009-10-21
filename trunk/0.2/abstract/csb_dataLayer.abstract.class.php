@@ -548,6 +548,10 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		$numrows = $this->run_sql($sql);
 		
 		$retval = $this->db->farray_fieldnames('entry_id', true, false);
+		$keys = array_keys($retval);
+		$tempData = $retval[$keys[0]];
+		$this->blogLocation = $tempData['location'];
+		$this->blogName = $tempData['blog_name'];
 		foreach($retval as $entryId=>$data) {
 			$retval[$entryId]['age_hype'] = $this->get_age_hype($data['post_timestamp']);
 			$retval[$entryId]['content'] = $this->decode_content($data['content']);

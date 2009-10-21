@@ -14,6 +14,9 @@ class csb_blogComment extends csb_blogAbstract {
     	
     	$blogData = $this->parse_full_permalink($fullPermalink);
     	
+    	$x = $this->get_blog_entry($fullPermalink);
+    	$this->blogEntryId = $x['entry_id'];
+    	
     	$this->blogLocation = $blogData['location'];
     	$this->blogName = $blogData['name'];
     	
