@@ -43,14 +43,19 @@ class csb_blogLocation extends csb_blogAbstract {
 			$retval = array();
 			foreach($this->validBlogs as $blogId=>$blogData) {
 				$blogName = $blogData['blog_name'];
-				$this->blogs[$blogName] = new csb_blog($blogName, $this->dbParams);
-				if(!$this->blogs[$blogName]->is_initialized()) {
-					$this->blogs[$blogName]->initialize_locals($blogName);
+				try {
+					$this->blogs[$blogName] = new csb_blog($blogName, $this->dbParams);
+					if(!$this->blogs[$blogName]->is_initialized()) {
+						$this->blogs[$blogName]->initialize_locals($blogName);
+					}
+					$retval[$blogName] = $this->blogs[$blogName]->get_recent_blogs($numPerBlog);
+					if($numPerBlog == 1) {
+						$keys = array_keys($retval[$blogName]);
+						$retval[$blogName] = $retval[$blogName][$keys[0]];
+					}
 				}
-				$retval[$blogName] = $this->blogs[$blogName]->get_recent_blogs($numPerBlog);
-				if($numPerBlog == 1) {
-					$keys = array_keys($retval[$blogName]);
-					$retval[$blogName] = $retval[$blogName][$keys[0]];
+				catch(exception $e) {
+					//nothing to see here, move along.
 				}
 			}
 		}
