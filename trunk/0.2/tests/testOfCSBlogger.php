@@ -24,21 +24,34 @@ class testOfCSBlogger extends UnitTestCase {
 		
 		//define some constants.
 		{
-			//Username we'll use in this class.
-			define("TEST_USER", 'simpletest');
+			$myConstants = array(
+				//Username we'll use in this class.
+				'TEST_USER'				=> "simpletest",
+				
+				//created during run_setup() in the schema file.
+				'DBCREATED_USER'		=> "TEST",
+				
+				//Tell the system that setup is still pending (delay retrieving some data until after setup)
+				'CSBLOG_SETUP_PENDING'	=> true,
+				
+				//Stuff for printing info out...
+				'DEBUGPRINTOPT'			=> 1,
+				'DEBUGREMOVEHR'			=> 1
+			);
 			
-			//created during run_setup() in the schema file.
-			define("DBCREATED_USER", 'test');
-			
-			//Tell the system that setup is still pending (delay retrieving some data until after setup)
-			define('CSBLOG_SETUP_PENDING', true);
-			
-			define('DEBUGPRINTOPT', 1);
-			define('DEBUGREMOVEHR', 1);
-		}
 		
-		$this->gfObj = new cs_globalFunctions;
-		$this->gfObj->debugPrintOpt=1;
+			$this->gfObj = new cs_globalFunctions;
+			$this->gfObj->debugPrintOpt=1;
+			
+			foreach($myConstants as $c=>$v) {
+				if(!defined($c)) {
+					define($c, $v);
+				}
+				else {
+					$this->gfObj->debug_print(__METHOD__ .": failed to set constant '". $c ."' (". $v ."), already set (". constant($c) .")");
+				}
+			}
+		}
 		
 	}//end __construct()
 	//-------------------------------------------------------------------------
@@ -56,7 +69,9 @@ class testOfCSBlogger extends UnitTestCase {
 		//	run will definitely fail straight away.
 		
 		//setup a new, temporary blog.
-		define('CSBLOG__DBTYPE', 'pgsql');
+		if(!defined('CSBLOG__DBTYPE')) {
+			define('CSBLOG__DBTYPE', 'pgsql');
+		}
 		#define('CSBLOG__RWDIR', dirname(__FILE__) .'/../../rw/testblogger');
 		#define('CSBLOG__DBNAME', 'simpletestblog.db');
 		
@@ -73,7 +88,7 @@ class testOfCSBlogger extends UnitTestCase {
 		//setup some local objects for use later.
 		$this->gf = new cs_globalFunctions;
 		$this->gf->debugPrintOpt=1;
-		$this->fs = new cs_fileSystem(CSBLOG__RWDIR);
+		$this->fs = new cs_fileSystem(constant('CSBLOG__RWDIR'));
 		
 		$this->assertTrue(function_exists('pg_connect'));
 		
