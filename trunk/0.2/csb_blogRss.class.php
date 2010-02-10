@@ -130,8 +130,13 @@ class csb_blogRss extends csb_blogAbstract {
 		$this->build_header($headerTags);
 		
 		foreach($blog->validBlogs as $blogId => $blogData) {
-			$name = $blogData['blog_name'];
-			$this->build_single_blog_rss($name, 1, true);
+			try {
+				$name = $blogData['blog_name'];
+				$this->build_single_blog_rss($name, 1, true);
+			}
+			catch(exception $e) {
+				//nothing to see here...
+			}
 		}
 		
 		return($this->xmlCreator->create_xml_string(true));
