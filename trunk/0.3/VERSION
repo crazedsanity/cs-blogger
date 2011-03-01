@@ -1,0 +1,5 @@
+## Stores the current version of cs-blogger, and it's source.  Please do NOT modify this file.
+
+VERSION: 0.2.0-ALPHA6
+PROJECT: cs-blogger
+$HeadURL$
