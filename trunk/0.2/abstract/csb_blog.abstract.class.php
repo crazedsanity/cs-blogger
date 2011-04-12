@@ -292,33 +292,24 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 			
 			$age = time() - $timestamp;
 			switch($age) {
-				case ($age <= 1800): {
-					$extraText = '<font color="red"><b>Ink\'s still WET!</b></font>';
-				} break;
-				
 				case ($age <= 3600): {
 					//modified less than an hour ago!
-					$extraText = '<font color="red"><b>Hot off the press!</b></font>';
+					$extraText = '<font color="red"><b>Ink\'s still WET!</b></font>';
 				} break;
 				
 				case ($age <= 86400): {
 					//modified less than 24 hours ago.
-					$extraText = '<font color="red"><b>New!</b></font>';
-				} break;
-				
-				case ($age <= 604800): {
-					//modified this week.
-					$extraText = '<font color="red">Less than a week old</font>';
+					$extraText = '<font color="red"><b>Hot off the press!</b></font>';
 				} break;
 				
 				case ($age <= 2592000): {
-					//modified this month.
-					$extraText = '<b>Less than a month old</b>';
+					//modified this week.
+					$extraText = '<font color="red"><b>New!</b></font>';
 				} break;
 				
 				case ($age <= 5184000): {
 					//modified in the last 2 months
-					$extraText = '<b>Updated last month</b>';
+					$extraText = '<b>Updated 2 months ago</b>';
 				} break;
 				
 				case ($age <= 7776000): {
