@@ -28,7 +28,6 @@ class csb_blogRss extends csb_blogAbstract {
 		
 		$this->xmlCreator = new cs_phpxmlCreator('rss');
 		$this->xmlCreator->add_attribute('/rss', array('version'=>"2.0"));
-		$this->xmlCreator->create_path('/rss/channel');
 		
 	}//end __construct()
 	//-------------------------------------------------------------------------
@@ -37,8 +36,6 @@ class csb_blogRss extends csb_blogAbstract {
 	
 	//-------------------------------------------------------------------------
 	protected function build_header(array $headerTags) {
-		$this->xmlCreator->create_path($this->basePath);
-		
 		// set some of the standard tags.
 		$headerTags['webMaster']	= 'cs-blogger-rss-help@crazedsanity.com';				// who to email with problems.
 		$headerTags['ttl']			= (60 * 4);												// minutes before feed should be re-checked.
@@ -88,7 +85,6 @@ class csb_blogRss extends csb_blogAbstract {
 		}
 		
 		$itemPath = $this->basePath .'/item';
-		$this->xmlCreator->create_path($itemPath);
 		foreach($myData as $entryData) {
 			//title, link, description, pubDate, guid (Global UID)
 			
@@ -110,7 +106,6 @@ class csb_blogRss extends csb_blogAbstract {
 			
 			$this->entryCounter++;
 		}
-		$this->xmlCreator->set_tag_as_multiple($itemPath);//so there are multiple
 		
 		return($this->xmlCreator->create_xml_string(true));
 	}//end build_single_blog_rss()
