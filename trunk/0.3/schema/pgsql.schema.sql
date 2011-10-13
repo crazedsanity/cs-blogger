@@ -25,11 +25,6 @@ create table csblog_blog_table (
 	last_post_timestamp timestamp without time zone
 );
 
-CREATE TABLE csblog_access_table (
-	access_id serial NOT NULL PRIMARY KEY,
-	blog_id integer NOT NULL REFERENCES csblog_blog_table(blog_id),
-	uid integer NOT NULL REFERENCES cs_authentication_table(uid)
-);
 CREATE TABLE csblog_entry_table (
 	entry_id serial NOT NULL PRIMARY KEY,
 	blog_id integer NOT NULL REFERENCES csblog_blog_table(blog_id),
@@ -61,6 +56,7 @@ CREATE TABLE csblog_permission_table (
 	blog_id integer NOT NULL REFERENCES csblog_blog_table(blog_id),
 	uid integer NOT NULL REFERENCES cs_authentication_table(uid)
 );
+CREATE UNIQUE INDEX csblog_permission_table_permalink_blog_id_uidx ON csblog_permission_table USING btree (blog_id,uid);
 
 --
 -- Table for holding comments.
