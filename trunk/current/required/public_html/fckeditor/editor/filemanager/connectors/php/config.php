@@ -30,7 +30,7 @@ global $Config ;
 $Config['Enabled'] = true ;
 
 //this is where constants are set...
-require_once(dirname(__FILE__) .'/../../../../../../../../../lib/siteConfig.php');
+require_once(dirname(__FILE__) .'/../../../../../../../../includes.php');
 
 // Path to user files relative to the document root.
 $Config['UserFilesPath'] = constant('CS_BLOGIMGURL');

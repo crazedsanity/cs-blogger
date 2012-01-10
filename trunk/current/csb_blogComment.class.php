@@ -18,7 +18,7 @@ class csb_blogComment extends csb_blogAbstract {
     	$this->blogEntryId = $x['entry_id'];
     	
     	$this->blogLocation = $blogData['location'];
-    	$this->blogName = $blogData['name'];
+    	$this->blogName = $blogData['blogName'];
     	
     }//end __construct()
 	//-------------------------------------------------------------------------
