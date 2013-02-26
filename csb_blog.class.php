@@ -25,7 +25,7 @@ class csb_blog extends csb_blogAbstract {
 	 * 
 	 * @return exception	throws an exception on error.
 	 */
-	public function __construct($blogName, array $dbParams=null) {
+	public function __construct(cs_phpDB $db, $blogName) {
 		
 		//TODO: put these in the constructor args, or require CONSTANTS.
 		parent::__construct($dbParams);

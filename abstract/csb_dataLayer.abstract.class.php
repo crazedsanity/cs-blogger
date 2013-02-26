@@ -22,7 +22,8 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	 * @param $dbType	(str) type of database to connect to (pgsql/mysql/sqlite)
 	 * @param $dbParams	(array) list of connection parameters for selected db.
 	 */
-   	function __construct(array $dbParams=NULL) {
+   	function __construct(cs_phpDB $db) {
+		
 		$this->set_version_file_location(dirname(__FILE__) . '/../VERSION');
 		$this->gfObj = new cs_globalFunctions();
 		
@@ -31,105 +32,8 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			define('CSBLOG_TITLE_MINLEN', 4);
 		}
 		
-		$this->dbParams = $dbParams;
-   		$this->connect_db();
+		$this->db = $db;
 	}//end __construct()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	protected function connect_db() {
-		if($this->isConnected === false) {
-			if(is_array($this->dbParams)) {
-				$this->db = new cs_phpDB('pgsql');
-				try {
-					$this->db->connect($this->dbParams);
-				}
-				catch(exception $e) {
-					throw new exception(__METHOD__ .": failed to connect to database, DETAILS: ". $e->getMessage());
-				}
-				
-				//NOTE: if the call to "connect()" fails, it should throw an exception.
-				$this->isConnected=true;
-			}
-			else {
-				//no parameters passed.  Try using constants.
-			
-				$constantList = array(
-					'CSBLOG_DB_HOST'		=> 'host',
-					'CSBLOG_DB_PORT'		=> 'port',
-					'CSBLOG_DB_DBNAME'		=> 'dbname',
-					'CSBLOG_DB_USER'		=> 'user',
-					'CSBLOG_DB_PASSWORD'	=> 'password'
-				);
-				
-				$dbParams = array();
-				foreach($constantList as $constant=>$index) {
-					$value = '';
-					if(defined($constant)) {
-						$value = constant($constant);
-					}
-					else {
-						if($index != 'password') {
-							throw new exception(__METHOD__ .": missing one or more constants for database connectivity (". $constant .")");
-						}
-					}
-					$dbParams[$index] = $value;
-				}
-				$this->db = new cs_phpDB('pgsql');
-				try {
-					$this->db->connect($dbParams);
-				}
-				catch(exception $e) {
-					throw new exception(__METHOD__ .": failed to connect to database using constants, DETAILS: ". $e->getMessage());
-				}
-				
-				//NOTE: if the call to "connect()" fails, it should throw an exception.
-				$this->isConnected = true;
-			}
-		}
-	}//end connect_db()
-	//-------------------------------------------------------------------------
-	
-	
-	
-	//-------------------------------------------------------------------------
-	public function run_sql($sql, $exceptionOnNoRows=true) {
-		//TODO: make EVERYTHING use this method, so it can automatically connect to the database.
-		if($this->isConnected !== true) {
-			$this->connect_db();
-		}
-		
-		if($this->isConnected === true) {
-			if(is_string($sql) && strlen($sql)) {
-				
-				//run the statement & check the output.
-				$numrows = $this->db->exec($sql);
-				$dberror = $this->db->errorMsg();
-				
-				if($exceptionOnNoRows === true && $numrows <= 0 && !strlen($dberror)) {
-					throw new exception(__METHOD__ .": no rows returned (". $numrows .")");
-				}
-				elseif(is_numeric($numrows) && !strlen($dberror)) {
-					$retval = $numrows;
-				}
-				else {
-					throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to run SQL... " .
-							"DBERROR: ". $dberror ."<BR>\nSQL::: ". $sql);
-				}
-				
-			}
-			else {
-				throw new exception(__METHOD__ .": no sql to run");
-			}
-		}
-		else {
-			throw new exception(__METHOD__ .": database isn't connected");
-		}
-		
-		return($retval);
-	}//end run_sql()
 	//-------------------------------------------------------------------------
 	
 	
@@ -145,20 +49,11 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	 */
 	public function run_setup() {
 		$retval = false;
-		$this->connect_db();
 		$this->db->beginTrans();
-		$fs = new cs_fileSystem(dirname(__FILE__) .'/../schema');
-		$mySchema = $fs->read(self::DBTYPE .'.schema.sql');
 		
-		$retval = $this->db->exec($mySchema);
+		$this->db->run_sql_file(dirname(__FILE__) .'/../schema');
 		
-		#$internalValues = $this->get_version(true);
-		#foreach($internalValues as $name=>$value) {
-		#	$sql = "INSERT INTO csblog_internal_data_table (internal_name, internal_value) " .
-		#			"VALUES ('". $name ."', '". $value ."')";
-		#	$this->run_sql($sql);
-		#}
-		
+		// TODO: actually evaluate the result of running the schema file.
 		$retval = 1;
 		$this->db->commitTrans();
 		return($retval);
@@ -190,25 +85,17 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		
 		if($existingUser === false) {
 			$encryptedPass = md5($username .'-'. $password);
-			$sql = 'INSERT INTO cs_authentication_table (username, passwd) VALUES ' .
-					"('". $username ."', '". $encryptedPass ."')";
+			$sql = 'INSERT INTO cs_authentication_table (username, passwd) VALUES (:user, :pass)';
 			
-			$numrows = $this->run_sql($sql);
-			
-			if($numrows == 1) {
-				$sql = "SELECT currval('cs_authentication_table_uid_seq')";
-				
-				$numrows = $this->run_sql($sql);
-				if($numrows == 1) {
-					$data = $this->db->farray();
-					$retval = $data[0];
-				}
-				else {
-					throw new exception(__METHOD__ .": invalid numrows (". $numrows .") while retrieving last inserted uid");
-				}
+			try {
+				$retval = $this->db->run_insert(
+						$sql, 
+						array('user'=>$username, 'pass'=>$encryptedPass),
+						'cs_authentication_table_uid_seq'
+				);
 			}
-			else {
-				throw new exception(__METHOD__ .": failed insert (". $numrows ."): ");
+			catch(Exception $ex) {
+				throw new exception(__METHOD__ .": failed to create new user::: ". $ex->getMessage());
 			}
 		}
 		else {
@@ -238,17 +125,21 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			if($username != func_get_arg(0)) {
 				throw new exception(__METHOD__ .": username contained invalid characters (". $username ." != ". func_get_arg(0) .")");
 			}
-			$sql = "SELECT * FROM cs_authentication_table WHERE username='". $username ."'";
-			$numrows = $this->run_sql($sql, false);
+			$sql = "SELECT * FROM cs_authentication_table WHERE username=:user";
 			
-			if($numrows == 1) {
-				$retval = $this->db->farray_fieldnames();
+			try {
+				$numrows = $this->run_sql($sql, array('user'=>$username));
 			}
-			elseif($numrows == 0) {
-				throw new exception(__METHOD__ .": invalid user (". $username .")");
-			}
-			else {
-				throw new exception(__METHOD__ .": invalid numrows (". $numrows .")");
+			catch(Exception $ex) {
+				if($numrows == 1) {
+					$retval = $this->db->get_single_record();
+				}
+				elseif($numrows == 0) {
+					throw new exception(__METHOD__ .": invalid user (". $username .")");
+				}
+				else {
+					throw new exception(__METHOD__ .": invalid numrows (". $numrows .")");
+				}	
 			}
 		}
 		else {
@@ -323,36 +214,21 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		}
 		
 		$formattedBlogName = $this->create_permalink_from_title($blogName);
-		$sql = "INSERT INTO csblog_blog_table ". $this->gfObj->string_from_array(
-			array(
-				'blog_display_name'		=> $blogName,
-				'blog_name'				=> $formattedBlogName,
-				'uid'					=> $owner,
-				'location_id'			=> $locationId
-			),
-			'insert',
-			NULL,
-			'sql_insert'
+		$sql = 'INSERT INTO csblog_blog_table (blog_display_name, blog_name, '
+			. 'uid, location_id) VALUES (:display, :name, :uid, :location)';
+		$params = array(
+			'display'		=> $blogName,
+			'name'			=> $formattedBlogName,
+			'uid'			=> $owner,
+			'location_id'	=> $locationId
 		);
 		
-		$numrows = $this->run_sql($sql);
-		
-		if($numrows == 1) {
-			//pull the blogId.
-			$retval = $this->db->get_currval('csblog_blog_table_blog_id_seq');
-			
-			if(is_numeric($retval) && $retval > 0) {
-				//Initialize locals now, if it hasn't been done yet.
-				if(defined('CSBLOG_SETUP_PENDING') && !$this->is_initialized()) {
-					$this->initialize_locals($formattedBlogName);
-				}
-			}
-			else {
-				throw new exception(__METHOD__ .": new blog_id (". $retval .") is invalid");
-			}
+		try {
+			$retval = $this->run_insert($sql, $params, 'csblog_blog_table_blog_id_seq');
+			$this->initialize_locals($formattedBlogName);
 		}
-		else {
-			throw new exception(__METHOD__ .": invalid numrows (". $numrows .") returned, ERROR: ". $this->db->errorMsg());
+		catch(Exception $e) {
+			throw new exception(__METHOD__ .": failed to create blog::: ". $e->getMessage());
 		}
 		
 		return($retval);
@@ -375,60 +251,27 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	 * @return exception	throws an exception on error
 	 * @return (array)		Array of data, indexes explain values
 	 */
-	public function create_entry($blogId, $authorUid, $title, $content, array $optionalData=NULL) {
+	public function create_entry($blogId, $authorUid, $title, $content, $postTimestamp, $isDraft=False) {
 		
-		//check to make sure we've got all the proper fields and they're formatted appropriately.
-		$sqlArr = array();
-		$cleanStringArr = array(
-			'blog_id'		=> "integer",
-			'author_uid'	=> "integer",
-			'title'			=> "sql",
-			'content'		=> "sql",
-			'permalink'		=> "email"
+		if(is_string($title) && strlen($title) > constant('CSBLOG_TITLE_MINLEN')) {
+			
+		}
+		else {
+			throw new exception(__METHOD__ .": title is not ");
+		}
+		
+		$sql = 'INSERT INTO csblog_entry_table'
+			.' (blog_id, author_uid, title, content, permalink, post_timestamp, is_draft) '
+			.' VALUES '
+			.'(:blogId,:uid, :title, :content, :permalink, : postTimestamp, :isDraft)';
+		$params = array(
+			'blogId'		=> $blogId,
+			'uid'			=> $authorUid,
+			'title'			=> $title,
+			'content'		=> $content,
+			'postTimestamp'	=> $postTimestamp,
+			'isDraft'		=> $isDraft
 		);
-		if(is_numeric($blogId) && $blogId > 0) {
-			$sqlArr['blog_id'] = $blogId;
-		}
-		else {
-			throw new exception(__METHOD__ .": invalid data for blogId (". $blogId .")");
-		}
-		if(is_numeric($authorUid) && $authorUid > 0) {
-			$sqlArr['author_uid'] = $authorUid;
-		}
-		else {
-			throw new exception(__METHOD__ .": invalid data for authorUid (". $authorUid .")");
-		}
-		if(is_string($title) && strlen($title) > CSBLOG_TITLE_MINLEN) {
-			$sqlArr['title'] = $title;
-		}
-		else {
-			throw new exception(__METHOD__ .": invalid data for title (". $title .")");
-		}
-		
-		//only allow a few other optional fields (make sure they're the appropriate data type).
-		if(is_array($optionalData) && count($optionalData)) {
-			
-			//Valid optional fields are defined here.
-			$validOptionalFields = array(
-				'post_timestamp'	=> 'datetime',
-				'is_draft'			=> 'boolean'
-			);
-			
-			$intersectedArray = array_intersect_key($optionalData, $validOptionalFields);
-			
-			if(is_array($intersectedArray) && count($intersectedArray)) {
-				foreach($intersectedArray as $fieldName => $value) {
-					if(!isset($sqlArr[$fieldName])) {
-						$sqlArr[$fieldName] = $value;
-						$cleanStringArr[$fieldName] = $validOptionalFields[$fieldName];
-					}
-					else {
-						throw new exception(__METHOD__ .": index (". $fieldName .") already exists");
-					}
-				}
-			}
-		}
-		
 		
 		//lets check to see that there is NOT already a blog like this...
 		$permalink = $this->create_permalink_from_title($title);
@@ -438,27 +281,19 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			$permalink = $checkLink;
 		}
 		//set some fields that can't be specified...
-		$sqlArr['permalink'] = $permalink;
-		$sqlArr['content'] = $this->encode_content($content);
+		$params['permalink'] = $permalink;
+		$params['content'] = $this->encode_content($content);
 		
-		//build the SQL statement.
-		$sql = "INSERT INTO csblog_entry_table ". $this->gfObj->string_from_array($sqlArr, 'insert', NULL, $cleanStringArr);
-		
-		//run the statement & check the output.
-		$numrows = $this->run_sql($sql);
-		
-		if(is_numeric($numrows) && $numrows == 1) {
-			$blogData = $this->get_blog_data_by_id($blogId);
+		try {
+			$newId = $this->db->run_insert($sql, $params, 'csblog_entry_table_entry_id_seq');
 			$retval = array(
-				'entry_id'		=> $this->db->get_currval('csblog_entry_table_entry_id_seq'),
-				'full_permalink'	=> $this->get_full_permalink($sqlArr['permalink'])
+				'entry_id'		=> $newId,
+				'full_permalink'=> $this->get_full_permalink($permalink)
 			);
-			
-			//one final thing: update the main blog table with the newest post_timestamp.
 			$this->update_blog_last_post_timestamps();
 		}
-		else {
-			throw new exception(__METHOD__ .": invalid numrows (". $numrows ."), failed to insert data");
+		catch(Exception $e) {
+			throw new exception(__METHOD__ .": failed to create new entry::: ". $e->getMessage());
 		}
 		
 		return($retval);
@@ -478,27 +313,38 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	 * @return (array)			Returns array of data, includes decoded content
 	 */
 	public function get_blog_entry($fullPermalink) {
-		//TODO: have this use get_blog_entries()
 		//the total permalink length should be at least double the minimum title length to include a path.
 		if(strlen($fullPermalink) > (CSBLOG_TITLE_MINLEN *2)) {
-			//now get the permalink separate from the title.
-			$parts = $this->parse_full_permalink($fullPermalink);
-			$permalink = $parts['permalink'];
-			$blogName = $parts['blogName'];
-			$location = $parts['location'];
 			
-			$criteria = array('bl.location'=>$location, 'b.blog_name'=>$blogName,'be.permalink'=>$permalink);
-			$data = $this->get_blog_entries($criteria,'be.entry_id');
+			$sql = "SELECT be.*, bl.location, b.blog_display_name, " .
+				"be.post_timestamp::date as date_short, " .
+				"b.blog_name, a.username FROM csblog_entry_table AS be INNER JOIN " .
+				"csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN " .
+				"csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN " .
+				"cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE 
+					(bl.location=:location OR :location IS NULL) 
+					AND (b.blog_name=:blogName OR :blogName IS NULL) 
+					AND (be.permalink=:permalink OR :permalink IS NULL) 
+					AND (be.author_uid = :authorUid OR :authorUid IS NULL)";
 			
-			if(count($data) == 1) {
-				$keys = array_keys($data);
-				$retval = $data[$keys[0]];
+			try {
+				//now get the permalink separate from the title.
+				$criteria = $this->parse_full_permalink($fullPermalink);
+
+				$numRows = $this->db->run_query($sql, $criteria);
+				
+				if($numRows == 1) {
+					$retval = $this->db->get_single_record();
+				}
+				elseif($numRows > 1) {
+					throw new exception(__METHOD__ .': too many records returned ('. $numRows .')');
+				}
+				else {
+					throw new exception(__METHOD__ .': no records found');
+				}
 			}
-			elseif(count($data) > 1) {
-				throw new exception(__METHOD__ .": multiple records returned for same location (". count($data) .")");
-			}
-			else {
-				throw new exception(__METHOD__ .": invalid number of records (". count($data) .") or dberror");
+			catch(Exception $e) {
+				throw new exception(__METHOD__ .': failed to retrieve blog entry::: '. $e->getMessage());
 			}
 		}
 		else {
@@ -512,27 +358,32 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	
 	
 	//-------------------------------------------------------------------------
+	/*
+	 * SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short, b.blog_name, a.username FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE bl.location='/blog' AND b.blog_name='slaughter' AND be.permalink='what_i_want-1' ORDER BY be.entry_id
+
+SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short, b.blog_name, a.username FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE bl.location='/blog' AND b.blog_name='slaughter' AND be.permalink='what_i_want-1' ORDER BY be.entry_id
+
+SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short, b.blog_name, a.username FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE bl.location='/blog' AND b.blog_name='slaughter' AND be.permalink='what_i_want-1' ORDER BY be.entry_id
+
+
+	 */
 	public function get_blog_entries(array $criteria, $orderBy, $limit=NULL, $offset=NULL) {
 		if(!is_array($criteria) || !count($criteria)) {
 			throw new exception(__METHOD__ .": invalid criteria");
 		}
 		
 		//TODO: should be specifically limited to blogs that are accessible to current user.
-		$sql = "SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short, " .
+			
+			$sql = "SELECT be.*, bl.location, b.blog_display_name, " .
+				"be.post_timestamp::date as date_short, " .
 				"b.blog_name, a.username FROM csblog_entry_table AS be INNER JOIN " .
 				"csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN " .
 				"csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN " .
-				"cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE ";
-		
-		//add stuff to the SQL...
-		foreach($criteria as $field=>$value) {
-			if(!preg_match('/^[a-z]{1,}\./', $field)) {
-				unset($criteria[$field]);
-				$field = "be.". $field;
-				$criteria[$field] = $value;
-			}
-		}
-		$sql .= $this->gfObj->string_from_array($criteria, 'select', NULL, 'sql');
+				"cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE 
+					(bl.location=:location OR :location IS NULL) 
+					AND (b.blog_name=:blogName OR :blogName IS NULL) 
+					AND (be.permalink=:permalink OR :permalink IS NULL) 
+					AND (be.author_uid = :authorUid OR :authorUid IS NULL)";
 		
 		if(strlen($orderBy)) {
 			$sql .= " ORDER BY ". $orderBy;
@@ -545,9 +396,15 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			$sql .= " OFFSET ". $offset;
 		}
 		
-		$numrows = $this->run_sql($sql);
 		
-		$retval = $this->db->farray_fieldnames('entry_id', true, false);
+		
+		$numrows = $this->db->run_query($sql, $criteria);
+		
+		$retval = $this->db->farray_fieldnames('entry_id');
+		
+		
+		/// TODO: Fix from here
+		
 		$keys = array_keys($retval);
 		$tempData = $retval[$keys[0]];
 		$this->blogLocation = $tempData['location'];
