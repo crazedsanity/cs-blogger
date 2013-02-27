@@ -91,16 +91,22 @@ class csb_blogEntry extends csb_blogAbstract {
 			$updateThis = array_intersect_key($updates, $validFields);
 			if(is_array($updateThis) && count($updateThis)) {
 				
-				//encode teh content as before.
+				//encode the content as before.
+				//TODO: stop encoding (shouldn't be necessary with prepared statements)
 				if(isset($updateThis['content'])) {
 					$updateThis['content'] = $this->encode_content($updateThis['content']);
 				}
+				$updateThis['entryId'] = $blogEntryId;
 				
-				$sql = "UPDATE csblog_entry_table SET ". $this->gfObj->string_from_array($updateThis, 'update', NULL, $validFields)
-					." WHERE entry_id=". $blogEntryId;
+				$updateString = "";
+				foreach(array_keys($updates) as $key) {
+					$updateString = $this->gfObj->create_list($updateString, $key .'=:'. $key);
+				}
+				$sql = "UPDATE csblog_entry_table SET ". $updateString
+					." WHERE entry_id=:entryId";
 				
 				$this->db->beginTrans();
-				$numrows = $this->run_sql($sql);
+				$numrows = $this->db->run_query($sql, $updateThis);
 				
 				if($numrows == 1) {
 					$this->update_blog_last_post_timestamps();

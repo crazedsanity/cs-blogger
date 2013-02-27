@@ -128,7 +128,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			$sql = "SELECT * FROM cs_authentication_table WHERE username=:user";
 			
 			try {
-				$numrows = $this->run_sql($sql, array('user'=>$username));
+				$numrows = $this->db->run_query($sql, array('user'=>$username));
 			}
 			catch(Exception $ex) {
 				if($numrows == 1) {
@@ -396,19 +396,15 @@ SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_s
 			$sql .= " OFFSET ". $offset;
 		}
 		
-		
-		
-		$numrows = $this->db->run_query($sql, $criteria);
-		
+		$this->db->run_query($sql, $criteria);
 		$retval = $this->db->farray_fieldnames('entry_id');
 		
-		
-		/// TODO: Fix from here
-		
+		// Get some info from the first record (this should hold true for all records)
 		$keys = array_keys($retval);
 		$tempData = $retval[$keys[0]];
 		$this->blogLocation = $tempData['location'];
 		$this->blogName = $tempData['blog_name'];
+		
 		foreach($retval as $entryId=>$data) {
 			$retval[$entryId]['age_hype'] = $this->get_age_hype($data['post_timestamp']);
 			$retval[$entryId]['content'] = $this->decode_content($data['content']);
@@ -439,17 +435,13 @@ SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_s
 		
 		//TODO: should be specifically limited to blogs that are accessible to current user.
 		$sql = "SELECT b.*, bl.location FROM csblog_blog_table AS b INNER JOIN " .
-				"csblog_location_table AS bl ON (b.location_id=bl.location_id) WHERE ";
+				"csblog_location_table AS bl ON (b.location_id=bl.location_id) WHERE 
+					(b.blog_name = :blogName OR :blogName IS NULL)
+					AND (b.blog_id=:blogId OR :blogId IS NULL)
+					AND (b.is_active=:isActive OR :isActive IS NULL)
+					AND (bl.location=:location OR :location IS NULL)";
 		
-		//add stuff to the SQL...
-		foreach($criteria as $field=>$value) {
-			if(!preg_match('/^[a-z]{1,}\./', $field)) {
-				unset($criteria[$field]);
-				$field = "b.". $field;
-				$criteria[$field] = $value;
-			}
-		}
-		$sql .= $this->gfObj->string_from_array($criteria, 'select', NULL, 'sql');
+		
 		
 		if(strlen($orderBy)) {
 			$sql .= " ORDER BY ". $orderBy;
@@ -465,9 +457,8 @@ SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_s
 			$sql .= " OFFSET ". $offset;
 		}
 		
-		$numrows = $this->run_sql($sql);
-		
-		$retval = $this->db->farray_fieldnames('blog_id', true, false);
+		$this->db->run_query($sql, $criteria);
+		$retval = $this->db->farray_fieldnames('blog_id');
 		
 		return($retval);
 	}//end get_blogs()
@@ -477,13 +468,18 @@ SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_s
 	
 	//-------------------------------------------------------------------------
 	protected function update_blog_data(array $updates) {
-		$sql = "UPDATE csblog_blog_table SET ". 
-				$this->gfObj->string_from_array($updates, 'update', null, 'sql') .
-				" WHERE blog_id=". $this->blogId;
+		
+		$updateString = "";
+		foreach(array_keys($updates) as $key) {
+			$updateString = $this->gfObj->create_list($updateString, $key .'=:'. $key);
+		}
+		$sql = "UPDATE csblog_blog_table SET ". $updateString .'WHERE blog_id=:blogId';
+		$params = $updates;
+		$params['blogId'] = $this->blogId;
 		
 		try {
 			$this->db->beginTrans();
-			$numrows = $this->run_sql($sql);
+			$numrows = $this->db->run_update($sql, $params);
 			
 			if($numrows == 1) {
 				$retval = $numrows;
@@ -511,7 +507,7 @@ SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_s
 				"blog_id=b.blog_id ORDER BY post_timestamp DESC limit 1)";
 		
 		try {
-			$retval = $this->run_sql($sql);
+			$retval = $this->db->run_update($sql, array());
 		}
 		catch(exception $e) {
 			throw new exception(__METHOD__ .": failed to update last_post_timestamp for blogs, DETAILS::: ". $e->getMessage());

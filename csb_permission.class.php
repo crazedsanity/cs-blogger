@@ -26,17 +26,8 @@ class csb_permission extends csb_dataLayerAbstract {
 		if(is_numeric($toUser) && $toUser > 0 && is_numeric($blogId) && $blogId > 0) {
 			$this->db->beginTrans();
 			$sql = "INSERT INTO csblog_permission_table (blog_id, uid) VALUES " .
-					"(". $blogId .", ". $toUser .")";
-			$numrows = $this->run_sql($sql);
-			
-			if($numrows == 1) {
-				$this->db->commitTrans();
-				$retval = $this->db->get_currval('csblog_permission_table_permission_id_seq');
-			}
-			else {
-				$this->db->rollbackTrans();
-				throw new exception(__METHOD__ .": invalid numrows (". $numrows .")");
-			}
+					"(:blogId, :toUser)";
+			$retval = $this->db->run_insert($sql, array('blogId'=>$blogId, 'toUser'=>$toUser), 'csblog_permission_table_permission_id_seq');
 		}
 		else {
 			throw new exception(__METHOD__ .": invalid uid (". $toUser .") or blogId (". $blogId .")");
@@ -78,10 +69,10 @@ class csb_permission extends csb_dataLayerAbstract {
 			}
 			catch(exception $e) {
 				//an exception means there was no record; check the permissions table.
-				$sql = "SELECT * FROM csblog_permission_table WHERE blog_id=". $blogId .
-						" AND uid=". $uid;
+				$sql = "SELECT * FROM csblog_permission_table WHERE".
+						"blog_id=:blogId AND uid=:uid";
 				
-				$numrows = $this->run_sql($sql,false);
+				$numrows = $this->db->run_query($sql, array('blogId'=>$blogId, 'uid'=>$uid));
 				
 				$retval = false;
 				if($numrows == 1) {
@@ -89,6 +80,9 @@ class csb_permission extends csb_dataLayerAbstract {
 				}
 				elseif($numrows > 1 || $numrows < 0) {
 					throw new exception(__METHOD__ .": invalid data returned, numrows=(". $numrows .")");
+				}
+				else {
+					throw new exception(__METHOD__ .": unknown result, numrows=(". $numrows .")");
 				}
 			}
 		}
@@ -111,12 +105,11 @@ class csb_permission extends csb_dataLayerAbstract {
 		}
 		
 		if(is_numeric($fromUser) && $fromUser > 0 && is_numeric($blogId) && $blogId > 0) {
-			$sql = "DELETE FROM csblog_permission_table WHERE blog_id=". $blogId 
-				." AND uid=". $fromUser;
+			$sql = "DELETE FROM csblog_permission_table WHERE blog_id=:blogId AND uid=:fromUser";
 			
 			try {
 				$this->db->beginTrans();
-				$numrows = $this->run_sql($sql, false);
+				$numrows = $this->run_query($sql, array('blogId'=>$blogId, 'fromUser'=>$fromUser));
 				
 				if($numrows == 0 || $numrows == 1) {
 					$this->db->commitTrans();

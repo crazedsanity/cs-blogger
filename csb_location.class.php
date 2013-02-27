@@ -23,23 +23,13 @@ class csb_location extends csb_dataLayerAbstract {
 			$location = $this->fix_location($location);
 			$location = $this->gfObj->cleanString($location, "sql_insert");
 			$sql = "INSERT INTO csblog_location_table (location) " .
-					"VALUES ('". $location ."')";
+					"VALUES (:loc)";
 			
 			try {
-				$numrows = $this->run_sql($sql);
-				
-				
-				if($numrows == 1) {
-					//okay, retrieve the id inserted.
-					$retval = $this->db->get_currval('csblog_location_table_location_id_seq');
-				}
-				else {
-					throw new exception(__METHOD__ .": failed to create location (". $location ."), " .
-							"numrows=(". $numrows .")");
-				}
+				$retval = $this->db->run_insert($sql, array('loc'=>$location), 'csblog_location_table_location_id_seq');
 			}
 			catch(exception $e) {
-				cs_debug_backtrace($this->gfObj->debugPrintOpt);
+				#cs_debug_backtrace($this->gfObj->debugPrintOpt);
 				throw new exception(__METHOD__ .": failed to create location (". $location .")... DETAILS::: ". $e->getMessage());
 			}
 		}
@@ -59,21 +49,9 @@ class csb_location extends csb_dataLayerAbstract {
 			$location = $this->fix_location($location);
 			$location = $this->gfObj->cleanString($location, "sql_insert");
 			$sql = "SELECT location_id FROM csblog_location_table " .
-					"WHERE location='". $location ."'";
-			$numrows = $this->run_sql($sql, false);
-			
-			
-			if($numrows == 0) {
-				$retval = false;
-			}
-			elseif($numrows == 1) {
-				$retval = $this->db->farray();
-				$retval = $retval[0];
-			}
-			else {
-				throw new exception(__METHOD__ .": failed to retrieve location (". $location ."), " .
-						"invalid numrows (". $numrows .")");
-			}
+					"WHERE location=:loc";
+			$this->db->run_query($sql, array('loc'=>$location));
+			$retval = $this->db->farray();
 		}
 		else {
 			throw new exception(__METHOD__ .": invalid location (". $location .")");
@@ -109,7 +87,7 @@ class csb_location extends csb_dataLayerAbstract {
 	//-------------------------------------------------------------------------
 	public function get_locations() {
 		$sql = "SELECT location_id, location FROM csblog_location_table ORDER BY location_id";
-		$numrows = $this->run_sql($sql,false);
+		$numrows = $this->db->run_query($sql,array());
 		
 		if($numrows > 0) {
 			$retval = $this->db->farray_nvp('location_id', 'location');
