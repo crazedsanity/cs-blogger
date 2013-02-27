@@ -441,7 +441,13 @@ SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_s
 					AND (b.is_active=:isActive OR :isActive IS NULL)
 					AND (bl.location=:location OR :location IS NULL)";
 		
-		
+		$defaultParams = array(
+			'blogName'	=> null,
+			'blogId'	=> null,
+			'isActive'	=> null,
+			'location'	=> null
+		);
+		$criteria = array_merge($criteria, $defaultParams);
 		
 		if(strlen($orderBy)) {
 			$sql .= " ORDER BY ". $orderBy;

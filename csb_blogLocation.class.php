@@ -14,15 +14,15 @@ class csb_blogLocation extends csb_blogAbstract {
 	protected $blogs = array();
 	
 	//-------------------------------------------------------------------------
-    function __construct($location, array $dbParams=null) {
-    	parent::__construct($dbParams);
+    function __construct($location, cs_phpDB $db) {
+    	parent::__construct($db);
     	
-    	$loc = new csb_location();
+    	$loc = new csb_location($db);
     	$location = $loc->fix_location($location);
     	
     	$criteria = array(
-			'is_active'		=>"t",
-			'bl.location'	=> $location
+			'isActive'		=>"t",
+			'location'	=> $location
 		);
 		
 		try {

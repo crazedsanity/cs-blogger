@@ -4,8 +4,8 @@
 class csb_location extends csb_dataLayerAbstract {
 
 	//-------------------------------------------------------------------------
-    public function __construct(array $dbParams=null) {
-    	parent::__construct($dbParams);
+    public function __construct(cs_phpDB $db) {
+    	parent::__construct($db);
     	
     	$this->gfObj = new cs_globalFunctions();
     	
