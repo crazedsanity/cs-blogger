@@ -183,7 +183,7 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 	 */
 	public function get_blog_data_by_name($blogName) {
 		if(strlen($blogName) > 3) {
-			$data = $this->get_blogs(array('b.blog_name'=>$blogName), 'blog_id');
+			$data = $this->get_blogs(array('blogName'=>$blogName), 'blog_id');
 			
 			if(count($data) == 1) {
 				$keys = array_keys($data);

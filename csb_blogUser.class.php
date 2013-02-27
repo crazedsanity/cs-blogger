@@ -16,21 +16,21 @@ class csb_blogUser extends csb_blogAbstract {
 	protected $blogIndex;
 	
 	//-------------------------------------------------------------------------
-    function __construct($user, $location=null, array $dbParams=null) {
+    function __construct(cs_phpDB $db, $user, $location=null) {
     	if(strlen($user) > 2) {
-	    	parent::__construct($dbParams);
+	    	parent::__construct($db);
 	    	
 	    	$criteria = array(
-				'is_active'=>"t"
+				'isActive'=>"t"
 			);
 			
 			if(is_string($location) && strlen($location)) {
-				$criteria['bl.location'] = $location;
+				$criteria['location'] = $location;
 			}
 			$uid = $this->get_uid($user);
 			if(is_numeric($uid)) {
 		    	$this->validBlogs = $this->get_blogs($criteria, 'last_post_timestamp DESC');
-		    	$permObj = new csb_permission($dbParams);
+		    	$permObj = new csb_permission($db);
 		    	foreach($this->validBlogs as $blogId=>$data) {
 		    		$obj = new csb_blog($data['blog_name']);
 		    		if(!$permObj->can_access_blog($blogId, $uid)) {

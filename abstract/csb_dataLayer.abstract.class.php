@@ -129,8 +129,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			
 			try {
 				$numrows = $this->db->run_query($sql, array('user'=>$username));
-			}
-			catch(Exception $ex) {
 				if($numrows == 1) {
 					$retval = $this->db->get_single_record();
 				}
@@ -139,7 +137,10 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 				}
 				else {
 					throw new exception(__METHOD__ .": invalid numrows (". $numrows .")");
-				}	
+				}
+			}
+			catch(Exception $ex) {	
+				throw new exception(__METHOD__ .": failed to retrieve record::: ". $ex->getMessage());
 			}
 		}
 		else {
@@ -157,7 +158,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		try {
 			$data = $this->get_user($username);
 		}
-		catch(exception $e) {
+		catch(Exception $e) {
 			$data = false;
 		}
 		if(is_bool($data) && $data === false) {

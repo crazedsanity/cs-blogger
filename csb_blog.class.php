@@ -28,7 +28,7 @@ class csb_blog extends csb_blogAbstract {
 	public function __construct(cs_phpDB $db, $blogName) {
 		
 		//TODO: put these in the constructor args, or require CONSTANTS.
-		parent::__construct($dbParams);
+		parent::__construct($db);
 		
 		
 		if(!isset($blogName) || !strlen($blogName)) {
