@@ -21,12 +21,10 @@ class csb_blog extends csb_blogAbstract {
 	 * 
 	 * @param $blogName		(str) name of blog (NOT the display name)
 	 * @param $dbType		(str) Type of database (pgsql/mysql/sqlite)
-	 * @param $dbParams		(array) connection options for database
 	 * 
 	 * @return exception	throws an exception on error.
 	 */
 	public function __construct(cs_phpDB $db, $blogName) {
-		
 		//TODO: put these in the constructor args, or require CONSTANTS.
 		parent::__construct($db);
 		

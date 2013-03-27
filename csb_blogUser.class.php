@@ -57,7 +57,7 @@ class csb_blogUser extends csb_blogAbstract {
 			$this->blogs = array();
 			foreach($this->validBlogs as $blogId=>$blogData) {
 				$blogName = $blogData['blog_name'];
-				$this->blogs[$blogName] = new csb_blog($blogName, $this->dbParams);
+				$this->blogs[$blogName] = new csb_blog($this->db, $blogName);
 				if(!$this->blogs[$blogName]->is_initialized()) {
 					$this->blogs[$blogName]->initialize_locals($blogName);
 				}

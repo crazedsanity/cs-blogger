@@ -14,7 +14,7 @@ class csb_blogLocation extends csb_blogAbstract {
 	protected $blogs = array();
 	
 	//-------------------------------------------------------------------------
-    function __construct($location, cs_phpDB $db) {
+    function __construct(cs_phpDB $db, $location) {
     	parent::__construct($db);
     	
     	$loc = new csb_location($db);
@@ -44,7 +44,7 @@ class csb_blogLocation extends csb_blogAbstract {
 			foreach($this->validBlogs as $blogId=>$blogData) {
 				$blogName = $blogData['blog_name'];
 				try {
-					$this->blogs[$blogName] = new csb_blog($blogName, $this->dbParams);
+					$this->blogs[$blogName] = new csb_blog($this->db, $blogName);
 					if(!$this->blogs[$blogName]->is_initialized()) {
 						$this->blogs[$blogName]->initialize_locals($blogName);
 					}
@@ -55,6 +55,7 @@ class csb_blogLocation extends csb_blogAbstract {
 					}
 				}
 				catch(exception $e) {
+					throw new exception(__METHOD__ .": unable to retrieve most recent blogs... ". $e->getMessage());
 					//nothing to see here, move along.
 				}
 			}

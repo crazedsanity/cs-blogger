@@ -3,7 +3,7 @@
 
 class csb_blogRss extends csb_blogAbstract {
 	
-	protected $dbParams = null;
+	protected $db = null;
 	
 	protected $defaultNumEntries = 5;
 	
@@ -16,15 +16,12 @@ class csb_blogRss extends csb_blogAbstract {
 	/**
 	 * The constructor.
 	 * 
-	 * @param $dbParams		(array) connection options for database
+	 * @param $db			(cs_phpDB) database object
 	 * 
 	 * @return (void)		It's a constructor... no exceptions. ;) 
 	 */
-	public function __construct(array $dbParams=null) {
-		
-		if(is_array($dbParams)) {
-			$this->dbParams = $dbParams;
-		}
+	public function __construct(cs_phpDB $db) {
+		$this->db = $db;
 		
 		$this->xmlCreator = new cs_phpxmlCreator('rss');
 		$this->xmlCreator->add_attribute('/rss', array('version'=>"2.0"));
@@ -57,7 +54,7 @@ class csb_blogRss extends csb_blogAbstract {
 	 */
 	public function build_single_blog_rss($blogName, $numRecentEntries=null, $setTitlePrefix=false) {
 		
-		$blog = new csb_blog($blogName, $this->dbParams);
+		$blog = new csb_blog($this->db, $blogName);
 		if(!is_numeric($numRecentEntries)) {
 			$numRecentEntries = $this->defaultNumEntries;
 		}
@@ -115,7 +112,7 @@ class csb_blogRss extends csb_blogAbstract {
 	
 	//-------------------------------------------------------------------------
 	public function build_blog_location_rss($location, $title, $description) {
-		$blog = new csb_blogLocation($location, $this->dbParams);
+		$blog = new csb_blogLocation($this->db, $location);
 		
 		$headerTags = array(
 			'title'			=> $title,

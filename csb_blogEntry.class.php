@@ -25,15 +25,15 @@ class csb_blogEntry extends csb_blogAbstract {
 	/**
 	 * The constructor.
 	 * 
+	 * @param $db				(cs_phpDB) database object
 	 * @param $fullPermalink	(str) FULL Permalink.
-	 * @param $dbParams			(array) connection options for database
 	 * 
 	 * @return exception	throws an exception on error.
 	 */
-	public function __construct($fullPermalink, array $dbParams=null) {
+	public function __construct(cs_phpDB $db, $fullPermalink) {
 		
 		//TODO: put these in the constructor args, or require CONSTANTS.
-		parent::__construct($dbParams);
+		parent::__construct($db);
 		
 		if(isset($fullPermalink) && strlen($fullPermalink)) {
 			
