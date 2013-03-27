@@ -19,15 +19,12 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 	/**
 	 * The constructor.
 	 * 
-	 * @param $blogName		(str) name of blog (NOT the display name)
-	 * @param $dbType		(str) Type of database (pgsql/mysql/sqlite)
-	 * @param $dbParams		(array) connection options for database
+	 * @param $db			(cs_phpDB) database object
 	 * 
 	 * @return exception	throws an exception on error.
 	 */
 	public function __construct(cs_phpDB $db) {
 		parent::__construct($db);
-		
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
