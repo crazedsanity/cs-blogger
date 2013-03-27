@@ -8,10 +8,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	protected $gfObj;
 	
 	/**  */
-	private $isConnected=false;
-	
-	/**  */
-	protected $dbParams;
+	public $db;
 	
 	const DBTYPE='pgsql';
 	
@@ -19,8 +16,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	/**
 	 * Constructor (must be called from extending class)
 	 * 
-	 * @param $dbType	(str) type of database to connect to (pgsql/mysql/sqlite)
-	 * @param $dbParams	(array) list of connection parameters for selected db.
+	 * @param $db	(cs_phpDB) database object
 	 */
    	function __construct(cs_phpDB $db) {
 		
@@ -207,7 +203,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		}
 		
 		//attempt to get/create the location...
-		$loc = new csb_location($this->dbParams);
+		$loc = new csb_location($this->db);
 		$locationId = $loc->get_location_id($location);
 		if(!is_numeric($locationId) || $locationId < 1) {
 			//TODO: should we really be creating this automatically?
@@ -359,15 +355,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	/*
-	 * SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short, b.blog_name, a.username FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE bl.location='/blog' AND b.blog_name='slaughter' AND be.permalink='what_i_want-1' ORDER BY be.entry_id
-
-SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short, b.blog_name, a.username FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE bl.location='/blog' AND b.blog_name='slaughter' AND be.permalink='what_i_want-1' ORDER BY be.entry_id
-
-SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_short, b.blog_name, a.username FROM csblog_entry_table AS be INNER JOIN csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE bl.location='/blog' AND b.blog_name='slaughter' AND be.permalink='what_i_want-1' ORDER BY be.entry_id
-
-
-	 */
 	public function get_blog_entries(array $criteria, $orderBy, $limit=NULL, $offset=NULL) {
 		if(!is_array($criteria) || !count($criteria)) {
 			throw new exception(__METHOD__ .": invalid criteria");
@@ -382,9 +369,11 @@ SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_s
 				"csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN " .
 				"cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE 
 					(bl.location=:location OR :location IS NULL) 
-					AND (b.blog_name=:blogName OR :blogName IS NULL) 
+					AND (b.blog_name=:blog_name OR :blog_name IS NULL) 
 					AND (be.permalink=:permalink OR :permalink IS NULL) 
-					AND (be.author_uid = :authorUid OR :authorUid IS NULL)";
+					AND (be.author_uid = :author_uid OR :author_uid IS NULL)
+					AND (b.blog_id = :blog_id OR :blog_id IS NULL)
+					AND (be.is_draft = :is_draft OR :is_draft IS NULL)";
 		
 		if(strlen($orderBy)) {
 			$sql .= " ORDER BY ". $orderBy;
@@ -397,29 +386,43 @@ SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_s
 			$sql .= " OFFSET ". $offset;
 		}
 		
-		$this->db->run_query($sql, $criteria);
-		$retval = $this->db->farray_fieldnames('entry_id');
+		//make sure all the fields are at least null...
+		$fields = array('location', 'blog_name', 'permalink', 'author_uid', 'blog_id', 'is_draft');
+		foreach($fields as $x) {
+			if(!isset($criteria[$x])) {
+				$criteria[$x] = null;
+			}
+		}
 		
-		// Get some info from the first record (this should hold true for all records)
-		$keys = array_keys($retval);
-		$tempData = $retval[$keys[0]];
-		$this->blogLocation = $tempData['location'];
-		$this->blogName = $tempData['blog_name'];
-		
-		foreach($retval as $entryId=>$data) {
-			$retval[$entryId]['age_hype'] = $this->get_age_hype($data['post_timestamp']);
-			$retval[$entryId]['content'] = $this->decode_content($data['content']);
-			$retval[$entryId]['full_permalink'] = $this->get_full_permalink($data['permalink']);
-			
-			//make a formatted post_timestamp index.
-			$retval[$entryId]['formatted_post_timestamp'] = 
-					strftime('%A, %B %d, %Y %I:%M %p', strtotime($data['post_timestamp']));
-			
-			//format the username...
-			$retval[$entryId]['formatted_author_name'] = ucwords($data['username']);
-			
-			//make "is_draft" a real boolean.
-			$retval[$entryId]['is_draft'] = $this->gfObj->interpret_bool($data['is_draft']);
+		try {
+			$this->db->run_query($sql, $criteria);
+			$retval = $this->db->farray_fieldnames('entry_id');
+
+			// Get some info from the first record (this should hold true for all records)
+			$keys = array_keys($retval);
+			$tempData = $retval[$keys[0]];
+			$this->blogLocation = $tempData['location'];
+			$this->blogName = $tempData['blog_name'];
+
+			foreach($retval as $entryId=>$data) {
+				$retval[$entryId]['age_hype'] = $this->get_age_hype($data['post_timestamp']);
+				$retval[$entryId]['content'] = $this->decode_content($data['content']);
+				$retval[$entryId]['full_permalink'] = $this->get_full_permalink($data['permalink']);
+
+				//make a formatted post_timestamp index.
+				$retval[$entryId]['formatted_post_timestamp'] = 
+						strftime('%A, %B %d, %Y %I:%M %p', strtotime($data['post_timestamp']));
+
+				//format the username...
+				$retval[$entryId]['formatted_author_name'] = ucwords($data['username']);
+
+				//make "is_draft" a real boolean.
+				$retval[$entryId]['is_draft'] = $this->gfObj->interpret_bool($data['is_draft']);
+			}
+
+		}
+		catch(Exception $e) {
+			throw new exception(__METHOD__ .": faield to get blog entries, DETAILS::: ". $e->getMessage());
 		}
 		
 		return($retval);
@@ -448,7 +451,7 @@ SELECT be.*, bl.location, b.blog_display_name, be.post_timestamp::date as date_s
 			'isActive'	=> null,
 			'location'	=> null
 		);
-		$criteria = array_merge($criteria, $defaultParams);
+		$criteria = array_merge($defaultParams, $criteria);
 		
 		if(strlen($orderBy)) {
 			$sql .= " ORDER BY ". $orderBy;
