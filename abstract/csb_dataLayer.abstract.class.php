@@ -23,6 +23,10 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		$this->set_version_file_location(dirname(__FILE__) . '/../VERSION');
 		$this->gfObj = new cs_globalFunctions();
 		
+		// TODO: this makes the site take ~6x longer to load (3 seconds vs. 0.5 seconds)... enable once it's optimized
+		#$upg = new cs_webdbupgrade(dirname(__FILE__) . '/../VERSION', dirname(__FILE__) . '/../upgrades/upgrade.xml');
+		#$upg->check_versions();
+		
 		//check that some required constants exist.
 		if(!defined('CSBLOG_TITLE_MINLEN')) {
 			define('CSBLOG_TITLE_MINLEN', 4);
