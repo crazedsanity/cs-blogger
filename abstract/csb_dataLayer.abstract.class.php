@@ -317,36 +317,12 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		//the total permalink length should be at least double the minimum title length to include a path.
 		if(strlen($fullPermalink) > (CSBLOG_TITLE_MINLEN *2)) {
 			
-			$sql = "SELECT be.*, bl.location, b.blog_display_name, " .
-				"be.post_timestamp::date as date_short, " .
-				"b.blog_name, a.username FROM csblog_entry_table AS be INNER JOIN " .
-				"csblog_blog_table AS b ON (be.blog_id=b.blog_id) INNER JOIN " .
-				"csblog_location_table AS bl ON (b.location_id=bl.location_id) INNER JOIN " .
-				"cs_authentication_table AS a ON (a.uid=be.author_uid) WHERE 
-					(bl.location=:location OR :location IS NULL) 
-					AND (b.blog_name=:blogName OR :blogName IS NULL) 
-					AND (be.permalink=:permalink OR :permalink IS NULL) 
-					AND (be.author_uid = :authorUid OR :authorUid IS NULL)";
+			//now get the permalink separate from the title.
+			$criteria = $this->parse_full_permalink($fullPermalink);
 			
-			try {
-				//now get the permalink separate from the title.
-				$criteria = $this->parse_full_permalink($fullPermalink);
-
-				$numRows = $this->db->run_query($sql, $criteria);
-				
-				if($numRows == 1) {
-					$retval = $this->db->get_single_record();
-				}
-				elseif($numRows > 1) {
-					throw new exception(__METHOD__ .': too many records returned ('. $numRows .')');
-				}
-				else {
-					throw new exception(__METHOD__ .': no records found');
-				}
-			}
-			catch(Exception $e) {
-				throw new exception(__METHOD__ .': failed to retrieve blog entry::: '. $e->getMessage());
-			}
+			$retval = $this->get_blog_entries($criteria);
+			$keys = array_keys($retval);
+			$retval = $retval[$keys[0]];
 		}
 		else {
 			throw new exception(__METHOD__ .": failed to meet length requirement of ". (CSBLOG_TITLE_MINLEN *2));
@@ -359,7 +335,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	public function get_blog_entries(array $criteria, $orderBy, $limit=NULL, $offset=NULL) {
+	public function get_blog_entries(array $criteria, $orderBy=NULL, $limit=NULL, $offset=NULL) {
 		if(!is_array($criteria) || !count($criteria)) {
 			throw new exception(__METHOD__ .": invalid criteria");
 		}
@@ -388,6 +364,11 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		}
 		if(is_numeric($offset) && $limit > 0) {
 			$sql .= " OFFSET ". $offset;
+		}
+		
+		if(isset($criteria['blogName'])) {
+			$criteria['blog_name'] = $criteria['blogName'];
+			unset($criteria['blogName']);
 		}
 		
 		//make sure all the fields are at least null...

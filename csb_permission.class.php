@@ -69,14 +69,16 @@ class csb_permission extends csb_dataLayerAbstract {
 			}
 			catch(exception $e) {
 				//an exception means there was no record; check the permissions table.
-				$sql = "SELECT * FROM csblog_permission_table WHERE".
+				$sql = "SELECT * FROM csblog_permission_table WHERE ".
 						"blog_id=:blogId AND uid=:uid";
 				
 				$numrows = $this->db->run_query($sql, array('blogId'=>$blogId, 'uid'=>$uid));
 				
-				$retval = false;
 				if($numrows == 1) {
 					$retval = true;
+				}
+				elseif($numrows == 0) {
+					$retval = false;
 				}
 				elseif($numrows > 1 || $numrows < 0) {
 					throw new exception(__METHOD__ .": invalid data returned, numrows=(". $numrows .")");
