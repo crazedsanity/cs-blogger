@@ -248,9 +248,9 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 			#if($permalink == $this->create_permalink_from_title($permalink)) {
 			$permalink = $this->create_permalink_from_title($permalink);
 			$sql = "SELECT * FROM csblog_entry_table WHERE blog_id=". $blogId 
-				." AND permalink=:permalink OR permalink LIKE :permalink-%'";
+				." AND permalink=:permalink OR permalink LIKE :permalink2";
 			
-			$numrows = $this->db->run_query($sql, array('permalink'=>$permalink));
+			$numrows = $this->db->run_query($sql, array('permalink'=>$permalink, 'permalink2'=>$permalink .'-%'));
 			
 			if($numrows >= 0) {
 				if($numrows >= 1) {

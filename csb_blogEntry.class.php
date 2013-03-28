@@ -97,6 +97,15 @@ class csb_blogEntry extends csb_blogAbstract {
 					$updateThis['content'] = $this->encode_content($updateThis['content']);
 				}
 				$updateThis['entryId'] = $blogEntryId;
+		
+				if(!isset($updateThis['post_timestamp'])) {
+					$updateThis['post_timestamp'] = date('r');
+				}
+				elseif(isset($updateThis['post_timestamp'])) {
+					if(is_null($updateThis['post_timestamp']) || !strlen($updateThis['post_timestamp'])) {
+						$updateThis['post_timestamp'] = date('r');
+					}
+				}
 				
 				$updateString = "";
 				foreach(array_keys($updates) as $key) {

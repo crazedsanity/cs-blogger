@@ -253,48 +253,52 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	 * @return (array)		Array of data, indexes explain values
 	 */
 	public function create_entry($blogId, $authorUid, $title, $content, $postTimestamp, $isDraft=False) {
+		if(!is_string($postTimestamp) || strlen($postTimestamp) < 6) {
+			//unset($postTimestamp);
+			$postTimestamp = date('r');
+		}
+		
+		$isDraft = $this->gfObj->interpret_bool($isDraft, array('FALSE', 'TRUE'));
 		
 		if(is_string($title) && strlen($title) > constant('CSBLOG_TITLE_MINLEN')) {
-			
+			$sql = 'INSERT INTO csblog_entry_table'
+				.' (blog_id, author_uid, title, content, permalink, post_timestamp, is_draft) '
+				.' VALUES '
+				.'(:blogId, :uid, :title, :content, :permalink, :postTimestamp, :isDraft)';
+			$params = array(
+				'blogId'		=> $blogId,
+				'uid'			=> $authorUid,
+				'title'			=> $title,
+				'content'		=> $content,
+				'postTimestamp'	=> $postTimestamp,
+				'isDraft'		=> $isDraft
+			);
+
+			//lets check to see that there is NOT already a blog like this...
+			$permalink = $this->create_permalink_from_title($title);
+			$checkLink = $this->check_permalink($blogId, $title);
+
+			if($checkLink != $permalink) {
+				$permalink = $checkLink;
+			}
+			//set some fields that can't be specified...
+			$params['permalink'] = $permalink;
+			$params['content'] = $this->encode_content($content);
+
+			try {
+				$newId = $this->db->run_insert($sql, $params, 'csblog_entry_table_entry_id_seq');
+				$retval = array(
+					'entry_id'		=> $newId,
+					'full_permalink'=> $this->get_full_permalink($permalink)
+				);
+				$this->update_blog_last_post_timestamps();
+			}
+			catch(Exception $e) {
+				throw new exception(__METHOD__ .": failed to create new entry::: ". $e->getMessage());
+			}
 		}
 		else {
-			throw new exception(__METHOD__ .": title is not ");
-		}
-		
-		$sql = 'INSERT INTO csblog_entry_table'
-			.' (blog_id, author_uid, title, content, permalink, post_timestamp, is_draft) '
-			.' VALUES '
-			.'(:blogId,:uid, :title, :content, :permalink, : postTimestamp, :isDraft)';
-		$params = array(
-			'blogId'		=> $blogId,
-			'uid'			=> $authorUid,
-			'title'			=> $title,
-			'content'		=> $content,
-			'postTimestamp'	=> $postTimestamp,
-			'isDraft'		=> $isDraft
-		);
-		
-		//lets check to see that there is NOT already a blog like this...
-		$permalink = $this->create_permalink_from_title($title);
-		$checkLink = $this->check_permalink($blogId, $title);
-		
-		if($checkLink != $permalink) {
-			$permalink = $checkLink;
-		}
-		//set some fields that can't be specified...
-		$params['permalink'] = $permalink;
-		$params['content'] = $this->encode_content($content);
-		
-		try {
-			$newId = $this->db->run_insert($sql, $params, 'csblog_entry_table_entry_id_seq');
-			$retval = array(
-				'entry_id'		=> $newId,
-				'full_permalink'=> $this->get_full_permalink($permalink)
-			);
-			$this->update_blog_last_post_timestamps();
-		}
-		catch(Exception $e) {
-			throw new exception(__METHOD__ .": failed to create new entry::: ". $e->getMessage());
+			throw new exception(__METHOD__ .": title does not meet minimum length requirement (". constant('CSBLOG_TITLE_MINLEN') .")");
 		}
 		
 		return($retval);
