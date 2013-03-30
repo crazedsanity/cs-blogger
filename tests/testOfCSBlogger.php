@@ -1,18 +1,7 @@
 <?php
 /*
  * Created on Jan 13, 2009
- * 
- * FILE INFORMATION:
- * 
- * $HeadURL$
- * $Id$
- * $LastChangedDate$
- * $LastChangedBy$
- * $LastChangedRevision$
  */
-
-
-
 
 //=============================================================================
 class testOfCSBlogger extends UnitTestCase {
@@ -64,6 +53,7 @@ class testOfCSBlogger extends UnitTestCase {
 	 */
 	function setUp() {
 		
+		throw new exception(__METHOD__ .": MUST BE CONVERTED to use cs_testDb");
 		//NOTE::: all of this very much assumes things are running inside a
 		//	transaction, started within the schema file.  If not, the next
 		//	run will definitely fail straight away.
@@ -83,6 +73,9 @@ class testOfCSBlogger extends UnitTestCase {
 			'password'	=> constant('CSBLOG_DB_PASSWORD')
 		);
 		
+		$dsn = "pgsql:host=". constant('CSBLOG_DB_HOST') .";dbname=". 
+				constant('CSBLOG_DB_DBNAME') .";port=". 
+				constant('CSBLOG_DB_PORT');
 		
 		
 		//setup some local objects for use later.
@@ -92,7 +85,7 @@ class testOfCSBlogger extends UnitTestCase {
 		
 		$this->assertTrue(function_exists('pg_connect'));
 		
-		$this->blog = new csb_blog('test', $this->connParams);
+		$this->blog = new csb_blog($this->db, 'test');
 		
 		$this->blog->db->beginTrans();
 		$this->assertTrue($this->blog->run_setup());
@@ -327,7 +320,7 @@ class testOfCSBlogger extends UnitTestCase {
 			
 			
 			
-			$blogEntry = new csb_blogEntry($retrievedEntry['full_permalink'], $this->connParams);
+			$blogEntry = new csb_blogEntry($this->db, $retrievedEntry['full_permalink']);
 			$updateRes = $blogEntry->update_entry($updateEntryId, $updates);
 			$this->assertTrue($updateRes, "Failed to update (". $updateRes .")");
 			
@@ -451,7 +444,7 @@ class testOfCSBlogger extends UnitTestCase {
 		$locationsArr = array();
 		$usersArr = array();
 		$entriesPerLocation = array();
-		$locObj = new csb_location();
+		$locObj = new csb_location($this->db);
 		foreach($createBlogData as $blogName=>$info) {
 			$locationsArr[$locObj->fix_location($info['location'])] += 1;
 			$usersArr[$info['userInfo']['username']] += 1;
@@ -487,7 +480,7 @@ class testOfCSBlogger extends UnitTestCase {
 	
 	//-------------------------------------------------------------------------
 	function test_locations() {
-		$locObj = new csb_location($this->connParams);
+		$locObj = new csb_location($this->db);
 		
 		//FORMAT: <name>=>array(test,expected)
 		$testThis = array(
@@ -571,7 +564,7 @@ class testOfCSBlogger extends UnitTestCase {
 		}
 		
 		//since the third user has no permissions or blogs, let's test them first.
-		$testBlog = new csb_blogUser('thirdUser', null, $this->connParams);
+		$testBlog = new csb_blogUser($this->db, 'thirdUser', null);
 		
 		
 	}//end test_permissions()
