@@ -3,7 +3,7 @@
 
 class csb_blogRss extends csb_blogAbstract {
 	
-	protected $db = null;
+	public $db = null;
 	
 	protected $defaultNumEntries = 5;
 	

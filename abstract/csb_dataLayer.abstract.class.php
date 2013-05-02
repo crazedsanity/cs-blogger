@@ -389,7 +389,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 
 			// Get some info from the first record (this should hold true for all records)
 			$keys = array_keys($retval);
-			$tempData = $retval[$keys[0]];
+			@$tempData = $retval[$keys[0]];
 			$this->blogLocation = $tempData['location'];
 			$this->blogName = $tempData['blog_name'];
 
