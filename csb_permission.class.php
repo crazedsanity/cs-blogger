@@ -52,7 +52,7 @@ class csb_permission extends csb_blogAbstract {
 					$blogId = $blogData['blog_id'];
 				}
 				//if this call doesn't cause an exception, we're good to go (add extra logic anyway)
-				$blogData = $this->get_blogs(array('blog_id'=>$blogId, 'uid'=>$uid));
+				$blogData = $this->get_blogs(array('blogId'=>$blogId, 'uid'=>$uid));
 				if(is_array($blogData) && count($blogData) == 1 && $blogData[$blogId]['uid'] == $uid) {
 					$retval = true;
 				}

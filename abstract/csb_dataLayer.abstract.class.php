@@ -432,13 +432,15 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 					(b.blog_name = :blogName OR :blogName IS NULL)
 					AND (b.blog_id=:blogId OR :blogId IS NULL)
 					AND (b.is_active=:isActive OR :isActive IS NULL)
-					AND (bl.location=:location OR :location IS NULL)";
+					AND (bl.location=:location OR :location IS NULL)
+					AND (b.uid=:uid OR :uid IS NULL)";
 		
 		$defaultParams = array(
 			'blogName'	=> null,
 			'blogId'	=> null,
 			'isActive'	=> null,
-			'location'	=> null
+			'location'	=> null,
+			'uid'		=> null
 		);
 		$criteria = array_merge($defaultParams, $criteria);
 		

@@ -33,7 +33,8 @@ class csb_blogUser extends csb_blogAbstract {
 		    	$permObj = new csb_permission($db);
 		    	foreach($this->validBlogs as $blogId=>$data) {
 		    		$obj = new csb_blog($this->db, $data['blog_name']);
-		    		if(!$permObj->can_access_blog($blogId, $uid)) {
+		    		$canAccess = $permObj->can_access_blog($blogId, $uid);
+		    		if(!$canAccess) {
 		    			unset($this->validBlogs[$blogId]);
 		    		}
 		    	}
