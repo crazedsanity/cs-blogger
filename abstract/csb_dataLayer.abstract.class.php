@@ -326,7 +326,12 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			
 			$retval = $this->get_blog_entries($criteria);
 			$keys = array_keys($retval);
-			$retval = $retval[$keys[0]];
+			if(isset($keys[0])) {
+				$retval = $retval[$keys[0]];
+			}
+			else {
+				$retval = null;
+			}
 		}
 		else {
 			throw new exception(__METHOD__ .": failed to meet length requirement of ". (CSBLOG_TITLE_MINLEN *2));
