@@ -5,7 +5,6 @@
 	"keywords": ["php", "web", "database", "blog"],
 	"homepage": "https://github.com/crazedsanity/cs-blogger",
 	"license": "GPL-2.0+",
-	"version": "0.4.6",
 	"authors": [
 		{
 			"name":	"Dan Falconer",
