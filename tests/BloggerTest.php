@@ -4,42 +4,17 @@
  */
 
 //=============================================================================
-class testOfCSBlogger extends UnitTestCase {
+class testOfCSBlogger extends testDbAbstract {
 	
 	
 	//-------------------------------------------------------------------------
-	function __construct() {
-		$this->UnitTestCase();
+	public function __construct() {
 		
 		//define some constants.
 		{
-			$myConstants = array(
-				//Username we'll use in this class.
-				'TEST_USER'				=> "simpletest",
-				
-				//created during run_setup() in the schema file.
-				'DBCREATED_USER'		=> "TEST",
-				
-				//Tell the system that setup is still pending (delay retrieving some data until after setup)
-				'CSBLOG_SETUP_PENDING'	=> true,
-				
-				//Stuff for printing info out...
-				'DEBUGPRINTOPT'			=> 1,
-				'DEBUGREMOVEHR'			=> 1
-			);
-			
-		
 			$this->gfObj = new cs_globalFunctions;
 			$this->gfObj->debugPrintOpt=1;
-			
-			foreach($myConstants as $c=>$v) {
-				if(!defined($c)) {
-					define($c, $v);
-				}
-				else {
-					$this->gfObj->debug_print(__METHOD__ .": failed to set constant '". $c ."' (". $v ."), already set (". constant($c) .")");
-				}
-			}
+			parent::__construct();
 		}
 		
 	}//end __construct()
@@ -53,42 +28,14 @@ class testOfCSBlogger extends UnitTestCase {
 	 */
 	function setUp() {
 		
-		throw new exception(__METHOD__ .": MUST BE CONVERTED to use cs_testDb");
-		//NOTE::: all of this very much assumes things are running inside a
-		//	transaction, started within the schema file.  If not, the next
-		//	run will definitely fail straight away.
 		
-		//setup a new, temporary blog.
-		if(!defined('CSBLOG__DBTYPE')) {
-			define('CSBLOG__DBTYPE', 'pgsql');
-		}
-		#define('CSBLOG__RWDIR', dirname(__FILE__) .'/../../rw/testblogger');
-		#define('CSBLOG__DBNAME', 'simpletestblog.db');
+		$this->reset_db(dirname(__FILE__) .'/../../cs-webapplibs/setup/schema.pgsql.sql');
 		
-		$this->connParams = array(
-			'host'		=> constant('CSBLOG_DB_HOST'),
-			'port'		=> constant('CSBLOG_DB_PORT'),
-			'dbname'	=> constant('CSBLOG_DB_DBNAME'),
-			'user'		=> constant('CSBLOG_DB_USER'),
-			'password'	=> constant('CSBLOG_DB_PASSWORD')
-		);
+		$this->blog = new csb_blog($this->dbObj, 'postgres');
 		
-		$dsn = "pgsql:host=". constant('CSBLOG_DB_HOST') .";dbname=". 
-				constant('CSBLOG_DB_DBNAME') .";port=". 
-				constant('CSBLOG_DB_PORT');
+		$this->assertTrue((bool)$this->blog->run_setup());
 		
-		
-		//setup some local objects for use later.
-		$this->gf = new cs_globalFunctions;
-		$this->gf->debugPrintOpt=1;
-		$this->fs = new cs_fileSystem(constant('CSBLOG__RWDIR'));
-		
-		$this->assertTrue(function_exists('pg_connect'));
-		
-		$this->blog = new csb_blog($this->db, 'test');
-		
-		$this->blog->db->beginTrans();
-		$this->assertTrue($this->blog->run_setup());
+		parent::setUp();
 	}//end setUp()
 	//-------------------------------------------------------------------------
 	
@@ -99,7 +46,7 @@ class testOfCSBlogger extends UnitTestCase {
 	 * Called after every test* method.
 	 */
 	function tearDown() {
-		$this->blog->db->rollbackTrans();
+		parent::tearDown();
 	}//end tearDown()
 	//-------------------------------------------------------------------------
 	
@@ -150,7 +97,7 @@ class testOfCSBlogger extends UnitTestCase {
 		
 		foreach($testArr as $name => $test) {
 			$result = $this->blog->create_permalink_from_title($test);
-			$this->assertEqual($result,$expectedResult,
+			$this->assertEquals($result,$expectedResult,
 				"Failed on test '". $name ."'... result=(". $result ."), expected=(". $expectedResult .")"
 			);
 		}
@@ -222,14 +169,14 @@ class testOfCSBlogger extends UnitTestCase {
 				$encodedContent,
 				"Encoding failed, content the same before encoding as after"
 			);
-			$this->assertEqual(
+			$this->assertEquals(
 				$testInputData['initial']['content'],
 				$decodedContent,
 				"Contents different after encode + decode..."
 			);
 			
 			//test cleaning.
-			$this->assertEqual(
+			$this->assertEquals(
 				$encodedContent,
 				$this->gf->cleanString($encodedContent, 'sql92_insert'),
 				"Content cleaning failed: encoded content was changed by cleanString()"
@@ -258,7 +205,7 @@ class testOfCSBlogger extends UnitTestCase {
 			//test permalink stuff (with internal check for duplicate titles).
 			$expectedPermalink = $testInputData['expectedPermalink'];
 			$expectedFullPermalink = $blogLocation ."/". $createdBlogData['blog_name'] ."/". $expectedPermalink;
-			$this->assertEqual(
+			$this->assertEquals(
 				$expectedFullPermalink,
 				$createPostRes['full_permalink'],
 				"Permalink seems malformed, expected=(". $expectedFullPermalink ."), actual=(". $createPostRes['full_permalink'] .")"
@@ -272,21 +219,21 @@ class testOfCSBlogger extends UnitTestCase {
 				$this->assertTrue(isset($retrievedEntry[$indexName]), "Data returned lacks index (". $indexName .")");
 			}
 			
-			$this->assertEqual(
+			$this->assertEquals(
 				$retrievedEntry['permalink'],
 				$expectedPermalink,
 				"Permalink different than expected.. expected=(". $expectedPermalink ."), actual=(". $retrievedEntry['permlink'] .")"
 			);
-			$this->assertEqual(
+			$this->assertEquals(
 				$retrievedEntry['full_permalink'],
 				$expectedFullPermalink,
 				"Retrieved full permalink invalid, expected=(". $expectedFullPermalink ."), actual=(". $retrievedEntry['full_permalink'] .")"
 			);
-			$this->assertEqual(
+			$this->assertEquals(
 				$decodedContent,
 				$retrievedEntry['content']
 			);
-			$this->assertEqual(
+			$this->assertEquals(
 				$retrievedEntry['content'],
 				$testInputData['initial']['content'],
 				"Original content doesn't match retrieved blog content"
@@ -306,7 +253,7 @@ class testOfCSBlogger extends UnitTestCase {
 			$lastGetPermalink = $expectedFullPermalink;
 			$retrievedEntry = $this->blog->get_blog_entry($expectedFullPermalink);
 			foreach($testInputData['initial'] as $checkIndex=>$checkValue) {
-				$this->assertEqual($checkValue, $retrievedEntry[$checkIndex]);
+				$this->assertEquals($checkValue, $retrievedEntry[$checkIndex]);
 			}
 			
 			
@@ -315,7 +262,7 @@ class testOfCSBlogger extends UnitTestCase {
 			
 			$updateEntryId = $retrievedEntry['entry_id'];
 			
-			$this->assertEqual($updateEntryId, $expectedId, "Expected id=(". $expectedId ."), got id=(". $updateEntryId .")");
+			$this->assertEquals($updateEntryId, $expectedId, "Expected id=(". $expectedId ."), got id=(". $updateEntryId .")");
 			
 			
 			
@@ -326,17 +273,17 @@ class testOfCSBlogger extends UnitTestCase {
 			
 			//retrieve the updated entry & make sure it's good.
 			$blogEntry = $this->blog->get_blog_entry($expectedFullPermalink);
-			$this->assertEqual(
+			$this->assertEquals(
 				$blogEntry['entry_id'],
 				$updateEntryId,
 				"Updated entry #". $updateEntryId .", got entry #". $blogEntry['entry_id'] 
 					." when using permalink=". $expectedFullPermalink
 			);
-			$this->assertEqual(
+			$this->assertEquals(
 				$blogEntry['content'],
 				$updates['content']
 			);
-			$this->assertEqual(
+			$this->assertEquals(
 				$blogEntry['update_timestamp'],
 				$updates['update_timestamp'],
 				"Failed to update timestamp"
@@ -457,19 +404,19 @@ class testOfCSBlogger extends UnitTestCase {
 			
 			//get just one entry per blog name.
 			$data = $blog->get_most_recent_blogs(1);
-			$this->assertEqual(count($data), $num);
+			$this->assertEquals(count($data), $num);
 			
 			//now get a few of the most recent entries from a given location.
 			$data = $blog->get_most_recent_blogs(5);
 			$checkThis = 0;
-			$this->assertEqual(count($data), $locationsArr[$locName]);
+			$this->assertEquals(count($data), $locationsArr[$locName]);
 			foreach($data as $blogName=>$entries) {
 				$keys = array_keys($entries);
 				$this->assertFalse(is_numeric($blogName));
 				$this->assertTrue(is_numeric($entries[$keys[0]]['blog_id']), "invalid blog_id for entry");
 				$checkThis += count($entries);
 			}
-			$this->assertEqual($entriesPerLocation[$locObj->fix_location($locName)], $checkThis);
+			$this->assertEquals($entriesPerLocation[$locObj->fix_location($locName)], $checkThis);
 			$testLocNum++;
 		}
 		
@@ -498,16 +445,16 @@ class testOfCSBlogger extends UnitTestCase {
 		catch(exception $e) {
 			$this->gf->debug_print(__METHOD__ .": no pre-existing locations");
 		}
-		$this->assertEqual(count($existingLocations),0);
+		$this->assertEquals(count($existingLocations),0);
 		
 		$addedLocations = array();
 		
 		foreach($testThis as $testName=>$data) {
 			
 			//Test Cleaning...
-			$this->assertEqual($locObj->fix_location($data[1]), $data[1], "Unclean test pattern '". $testName ."' (".
+			$this->assertEquals($locObj->fix_location($data[1]), $data[1], "Unclean test pattern '". $testName ."' (".
 					$locObj->fix_location($data[1]) .")");
-			$this->assertEqual($locObj->fix_location($data[0]), $data[1], "Cleaning failed for pattern '". $testName ."' (". 
+			$this->assertEquals($locObj->fix_location($data[0]), $data[1], "Cleaning failed for pattern '". $testName ."' (". 
 					$locObj->fix_location($data[0]) .")");
 			
 			//Test adding the locations.
@@ -516,13 +463,13 @@ class testOfCSBlogger extends UnitTestCase {
 			$this->assertTrue(is_numeric($newLocId), "Didn't get valid location_id (". $newLocId .")");
 			
 			$locArr = $locObj->get_locations();
-			$this->assertEqual($locArr[$newLocId], $data[1], "New location (". $locArr[$newLocId] .") does not match expected (". $data[1] .")");
+			$this->assertEquals($locArr[$newLocId], $data[1], "New location (". $locArr[$newLocId] .") does not match expected (". $data[1] .")");
 			
 			//make sure retrieving the location_id using clean & unclean data works properly.
 			$getUncleanLoc	= $locObj->get_location_id($data[0]);
 			$getCleanLoc	= $locObj->get_location_id($data[1]);
-			$this->assertEqual($newLocId, $getUncleanLoc);
-			$this->assertEqual($getUncleanLoc, $getCleanLoc);
+			$this->assertEquals($newLocId, $getUncleanLoc);
+			$this->assertEquals($getUncleanLoc, $getCleanLoc);
 		}
 	}//end test_locations()
 	//-------------------------------------------------------------------------
@@ -583,9 +530,9 @@ class testOfCSBlogger extends UnitTestCase {
 		$userData = $this->blog->get_user($user);
 		
 		$this->assertTrue(is_array($userData), "Data retrieved for (". $user .") isn't an array...". $this->gf->debug_print($userData,0));
-		$this->assertEqual($userData['passwd'], md5($user .'-'. $pass));
-		$this->assertEqual($uid, $userData['uid']);
-		$this->assertEqual($user, $userData['username']);
+		$this->assertEquals($userData['passwd'], md5($user .'-'. $pass));
+		$this->assertEquals($uid, $userData['uid']);
+		$this->assertEquals($user, $userData['username']);
 		
 		
 		//test a complex password.
@@ -595,9 +542,9 @@ class testOfCSBlogger extends UnitTestCase {
 		
 		$userData = $this->blog->get_user($user);
 		$this->assertTrue(is_array($userData));
-		$this->assertEqual($userData['passwd'], md5($user .'-'. $pass));
-		$this->assertEqual($uid, $userData['uid']);
-		$this->assertEqual($user, $userData['username']);
+		$this->assertEquals($userData['passwd'], md5($user .'-'. $pass));
+		$this->assertEquals($uid, $userData['uid']);
+		$this->assertEquals($user, $userData['username']);
 		
 	}//end test_user_authentication()
 	//-------------------------------------------------------------------------
@@ -625,15 +572,15 @@ class testOfCSBlogger extends UnitTestCase {
 		$this->assertTrue(is_numeric($commentId));
 		
 		$data = $obj->get_comment_by_id($commentId);
-		$this->assertEqual($data['title'], $title);
-		$this->assertEqual($data['comment'], $comment);
-		$this->assertEqual($data['comment_id'], $commentId);
-		$this->assertEqual($data['author_uid'], $uid);
-		$this->assertEqual($data['blog_id'], $blogId);
+		$this->assertEquals($data['title'], $title);
+		$this->assertEquals($data['comment'], $comment);
+		$this->assertEquals($data['comment_id'], $commentId);
+		$this->assertEquals($data['author_uid'], $uid);
+		$this->assertEquals($data['blog_id'], $blogId);
 		
 		//some assumed things...
-		$this->assertEqual($this->gf->interpret_bool($data['is_anonymous']), false);
-		$this->assertEqual($data['ancestry'], "");
+		$this->assertEquals($this->gf->interpret_bool($data['is_anonymous']), false);
+		$this->assertEquals($data['ancestry'], "");
 		
 		
 		//now let's create nested comments.
@@ -646,16 +593,16 @@ class testOfCSBlogger extends UnitTestCase {
 			$newCommentId = $obj->add_comment($uid, $newTitle, $comment, $familyTree);
 			
 			$data = $obj->get_comment_by_id($newCommentId);
-			$this->assertEqual($data['title'], $newTitle);
-			$this->assertEqual($data['comment'], $comment);
-			$this->assertEqual($data['comment_id'], $newCommentId);
-			$this->assertEqual($data['author_uid'], $uid);
-			$this->assertEqual($data['blog_id'], $blogId);
+			$this->assertEquals($data['title'], $newTitle);
+			$this->assertEquals($data['comment'], $comment);
+			$this->assertEquals($data['comment_id'], $newCommentId);
+			$this->assertEquals($data['author_uid'], $uid);
+			$this->assertEquals($data['blog_id'], $blogId);
 			
 			
 			//Here's the test we've all been waiting for:::
 			$expectAncestry = $this->gf->string_from_array($familyTree, null, ':');
-			$this->assertEqual(
+			$this->assertEquals(
 				$data['ancestry'],
 				$expectAncestry,
 				"Ancestry doesn't match for id=(". $newCommentId ."), expected (". $expectAncestry ."), got (". $data['ancestry'] .")"

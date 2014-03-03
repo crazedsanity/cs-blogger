@@ -24,7 +24,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		$this->gfObj = new cs_globalFunctions();
 		
 		// TODO: this makes the site take ~6x longer to load (3 seconds vs. 0.5 seconds)... enable once it's optimized
-		$upg = new cs_webdbupgrade(dirname(__FILE__) . '/../VERSION', dirname(__FILE__) . '/../upgrades/upgrade.xml', $db);
+		$upg = new cs_webdbupgrade(dirname(__FILE__) . '/../VERSION', dirname(__FILE__) . '/../upgrades/upgrade.ini', $db);
 		$upg->check_versions(true);
 		
 		//check that some required constants exist.
@@ -51,7 +51,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		$retval = false;
 		$this->db->beginTrans();
 		
-		$this->db->run_sql_file(dirname(__FILE__) .'/../schema');
+		$this->db->run_sql_file(dirname(__FILE__) .'/../schema/schema.pgsql.sql');
 		
 		// TODO: actually evaluate the result of running the schema file.
 		$retval = 1;
@@ -225,7 +225,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		);
 		
 		try {
-			$retval = $this->run_insert($sql, $params, 'csblog_blog_table_blog_id_seq');
+			$retval = $this->db->run_insert($sql, $params, 'csblog_blog_table_blog_id_seq');
 			$this->initialize_locals($formattedBlogName);
 		}
 		catch(Exception $e) {
