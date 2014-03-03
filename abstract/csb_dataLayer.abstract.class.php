@@ -208,7 +208,11 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 		
 		//attempt to get/create the location...
 		$loc = new csb_location($this->db);
-		$locationId = $loc->get_location_id($location);
+		$locationData = $loc->get_location_id($location);
+		$locationId = null;
+		if(is_array($locationData) && isset($locationData[0]) && isset($locationData[0]['location_id'])) {
+			$locationId = $locationData[0]['location_id'];
+		}
 		if(!is_numeric($locationId) || $locationId < 1) {
 			//TODO: should we really be creating this automatically?
 			$locationId = $loc->add_location($location);
@@ -221,7 +225,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			'display'		=> $blogName,
 			'name'			=> $formattedBlogName,
 			'uid'			=> $owner,
-			'location_id'	=> $locationId
+			'location'		=> $locationId
 		);
 		
 		try {
@@ -252,7 +256,7 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 	 * @return exception	throws an exception on error
 	 * @return (array)		Array of data, indexes explain values
 	 */
-	public function create_entry($blogId, $authorUid, $title, $content, $postTimestamp, $isDraft=False) {
+	public function create_entry($blogId, $authorUid, $title, $content, $postTimestamp=null, $isDraft=False) {
 		if(!is_string($postTimestamp) || strlen($postTimestamp) < 6) {
 			//unset($postTimestamp);
 			$postTimestamp = date('r');

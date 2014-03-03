@@ -38,7 +38,7 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 	 */
 	public function initialize_locals($blogName) {
 		
-		if(!is_numeric($this->blogId)) {
+//		if(!is_numeric($this->blogId)) {
 			$data = $this->get_blog_data_by_name($blogName);
 			
 			$var2index = array(
@@ -56,10 +56,10 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 					throw new exception(__METHOD__ .": var ". $var ." not set from index ". $index .", no data (". $data[$index] .")");
 				}
 			}
-		}
-		else {
-			throw new exception(__METHOD__ .": already initialized");
-		}
+//		}
+//		else {
+//			throw new exception(__METHOD__ .": already initialized");
+//		}
 	}//end initialize_locals()
 	//-------------------------------------------------------------------------
 	
@@ -212,7 +212,7 @@ class csb_blogAbstract extends csb_dataLayerAbstract {
 	public function get_blog_data_by_id($blogId) {
 		
 		if(is_numeric($blogId) && $blogId > 0) {
-			$data = $this->get_blogs(array('blog_id'=>$blogId), 'blog_id');
+			$data = $this->get_blogs(array('blogId'=>$blogId), 'blog_id');
 			if(count($data) == 1) {
 				$keys = array_keys($data);
 				$retval = $data[$keys[0]];

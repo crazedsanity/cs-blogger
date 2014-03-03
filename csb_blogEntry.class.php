@@ -96,7 +96,7 @@ class csb_blogEntry extends csb_blogAbstract {
 				if(isset($updateThis['content'])) {
 					$updateThis['content'] = $this->encode_content($updateThis['content']);
 				}
-				$updateThis['entryId'] = $blogEntryId;
+				$updateThis['entry_id'] = $blogEntryId;
 		
 				if(!isset($updateThis['post_timestamp'])) {
 					$updateThis['post_timestamp'] = date('r');
@@ -108,11 +108,13 @@ class csb_blogEntry extends csb_blogAbstract {
 				}
 				
 				$updateString = "";
-				foreach(array_keys($updates) as $key) {
+				$actualUpdates = $updateThis;
+				unset($actualUpdates['entry_id'], $actualUpdates['entryId']);
+				foreach(array_keys($actualUpdates) as $key) {
 					$updateString = $this->gfObj->create_list($updateString, $key .'=:'. $key);
 				}
 				$sql = "UPDATE csblog_entry_table SET ". $updateString
-					." WHERE entry_id=:entryId";
+					." WHERE entry_id=:entry_id";
 				
 				$this->db->beginTrans();
 				$numrows = $this->db->run_query($sql, $updateThis);
