@@ -4,6 +4,7 @@
 class csb_blogRss extends csb_blogAbstract {
 	
 	public $db = null;
+	private $xml = null;
 	
 	protected $defaultNumEntries = 5;
 	
@@ -22,10 +23,7 @@ class csb_blogRss extends csb_blogAbstract {
 	 */
 	public function __construct(cs_phpDB $db) {
 		$this->db = $db;
-		
-		$this->xmlCreator = new cs_phpxmlCreator('rss');
-		$this->xmlCreator->add_attribute('/rss', array('version'=>"2.0"));
-		
+		$this->xml = new SimpleXMLElement('<rss version="2.0" encoding="utf-8"></rss>');
 	}//end __construct()
 	//-------------------------------------------------------------------------
 	
@@ -34,13 +32,17 @@ class csb_blogRss extends csb_blogAbstract {
 	//-------------------------------------------------------------------------
 	protected function build_header(array $headerTags) {
 		// set some of the standard tags.
+		
+		
 		$headerTags['webMaster']	= 'cs-blogger-rss-help@crazedsanity.com';				// who to email with problems.
 		$headerTags['ttl']			= (60 * 4);												// minutes before feed should be re-checked.
 		$headerTags['generator']	= $this->get_project() .' - '. $this->get_version();	// what generated this...
 		$headerTags['docs']			= "http://www.rssboard.org/rss-specification";			//go here to see what an rss file is.
+//		$headerTags['pubDate']		= date(DATE_RSS);										//date it was published...
 		
+		$this->xml->addChild('channel');
 		foreach($headerTags as $name=>$value) {
-			$this->xmlCreator->add_tag($this->basePath .'/'. $name, $value);
+			$this->xml->channel->addChild($name, $value);
 		}
 		$this->headerBuilt=true;
 	}//end build_header()
@@ -81,30 +83,25 @@ class csb_blogRss extends csb_blogAbstract {
 			$this->build_header($headerTags);
 		}
 		
-		$itemPath = $this->basePath .'/item';
 		foreach($myData as $entryData) {
 			//title, link, description, pubDate, guid (Global UID)
 			
-			$myPath = $itemPath .'/'. $this->entryCounter;
-			$this->xmlCreator->add_tag($myPath);
+			$item = $this->xml->channel->addChild('item');
 			
 			$title = $entryData['title'];
 			if($setTitlePrefix) {
 				$title = $entryData['blog_display_name'] .' - '. $title;
 			}
-			$this->xmlCreator->add_tag($myPath .'/title', $title);
-			$this->xmlCreator->add_tag($myPath .'/link', $siteUrl . $entryData['full_permalink']);
+			$item->addChild('title', $title);
+			$item->addChild('link', $siteUrl . $entryData['full_permalink']);
 			
-			//TODO: truncate the content and append a link to the end... or omit the story contents altogether.
-			//$this->xmlCreator->add_tag($myPath .'/description', $entryData['content']);
-			
-			$this->xmlCreator->add_tag($myPath .'/pubDate', $entryData['post_timestamp']);
-			$this->xmlCreator->add_tag($myPath .'/guid', $_SERVER['HTTP_HOST'] .'-'. $entryData['blog_name'] .'-'. $entryData['blog_id'] .'-'. $entryData['entry_id'], array('isPermaLink'=>"false"));
+			$item->addChild('pubDate', $entryData['post_timestamp']);
+			$item->addChild('guid', $_SERVER['HTTP_HOST'] .'-'. $entryData['blog_name'] .'-'. $entryData['blog_id'] .'-'. $entryData['entry_id'], array('isPermaLink'=>"false"));
 			
 			$this->entryCounter++;
 		}
 		
-		return($this->xmlCreator->create_xml_string(true));
+		return("$this->xml");
 	}//end build_single_blog_rss()
 	//-------------------------------------------------------------------------
 	
@@ -121,7 +118,7 @@ class csb_blogRss extends csb_blogAbstract {
 		);
 		$this->build_header($headerTags);
 		
-		foreach($blog->validBlogs as $blogId => $blogData) {
+		foreach($blog->validBlogs as $blogData) {
 			try {
 				$name = $blogData['blog_name'];
 				$this->build_single_blog_rss($name, 1, true);
@@ -131,11 +128,10 @@ class csb_blogRss extends csb_blogAbstract {
 			}
 		}
 		
-		return($this->xmlCreator->create_xml_string(true));
+		return("$this->xml");
 	}//end build_blog_location_rss()
 	//-------------------------------------------------------------------------
 	
 	
 	
 }// end blog{}
-?>

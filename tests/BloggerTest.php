@@ -55,6 +55,15 @@ class testOfCSBlogger extends testDbAbstract {
 	
 	
 	//-------------------------------------------------------------------------
+	public function test_rss() {
+		
+		new csb_blogRss($this->dbObj);
+	}
+	//-------------------------------------------------------------------------	
+	
+	
+	
+	//-------------------------------------------------------------------------
 	function test_create_blog() {
 		
 		$testUser = 'simpletest';
