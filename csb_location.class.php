@@ -29,7 +29,6 @@ class csb_location extends csb_dataLayerAbstract {
 				$retval = $this->db->run_insert($sql, array('loc'=>$location), 'csblog_location_table_location_id_seq');
 			}
 			catch(exception $e) {
-				#cs_debug_backtrace($this->gfObj->debugPrintOpt);
 				throw new exception(__METHOD__ .": failed to create location (". $location .")... DETAILS::: ". $e->getMessage());
 			}
 		}

@@ -1,7 +1,6 @@
 <?php
 
 require_once(dirname(__FILE__) .'/../AutoLoader.class.php');
-require_once(dirname(__FILE__) .'/../../cs-webapplibs/debugFunctions.php');
 
 // set a constant for testing...
 define('UNITTEST__LOCKFILE', dirname(__FILE__) .'/files/rw/');
