@@ -29,11 +29,13 @@ class testOfCSBlogger extends testDbAbstract {
 	function setUp() {
 		
 		
-		$this->reset_db(dirname(__FILE__) .'/../../cs-webapplibs/setup/schema.pgsql.sql');
+		$this->reset_db();
+		$this->dbObj->load_schema($this->dbObj->get_dbtype(), $this->dbObj);
+		
 		
 		$this->blog = new csb_blog($this->dbObj, 'postgres');
-		
 		$this->assertTrue((bool)$this->blog->run_setup());
+		
 		
 		parent::setUp();
 	}//end setUp()
