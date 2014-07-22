@@ -327,7 +327,6 @@ abstract class csb_dataLayerAbstract extends cs_versionAbstract {
 			
 			//now get the permalink separate from the title.
 			$criteria = $this->parse_full_permalink($fullPermalink);
-			
 			$retval = $this->get_blog_entries($criteria);
 			$keys = array_keys($retval);
 			if(isset($keys[0])) {

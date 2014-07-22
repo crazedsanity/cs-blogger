@@ -41,6 +41,7 @@ class csb_permission extends csb_blogAbstract {
 	
 	//-------------------------------------------------------------------------
 	public function can_access_blog($blogId, $uid) {
+		$dbg = "invalid... blogId=($blogId), uid=($uid)";
 		if(strlen($blogId) && (is_numeric($uid) || strlen($uid))) {
 			
 			try {
@@ -52,32 +53,22 @@ class csb_permission extends csb_blogAbstract {
 					$blogId = $blogData['blog_id'];
 				}
 				//if this call doesn't cause an exception, we're good to go (add extra logic anyway)
-				$blogData = $this->get_blogs(array('blogId'=>$blogId, 'uid'=>$uid));
+				$blogData = $this->get_blogs(array('blogId'=>$blogId));
 				if(is_array($blogData) && count($blogData) == 1 && $blogData[$blogId]['uid'] == $uid) {
 					$retval = true;
 				}
 				else {
-					$retval = false;
+//					$dbg = "invalid data...blogId=($blogId), uid=($uid)? ". cs_global::debug_print($blogData);
+//					$retval = false;
+					$retval = $this->has_permission($blogId, $uid);
 				}
 			}
-			catch(exception $e) {
-				//an exception means there was no record; check the permissions table.
-				$sql = "SELECT * FROM csblog_permission_table WHERE ".
-						"blog_id=:blogId AND uid=:uid";
-				
-				$numrows = $this->db->run_query($sql, array('blogId'=>$blogId, 'uid'=>$uid));
-				
-				if($numrows == 1) {
-					$retval = true;
+			catch(Exception $e) {
+				try {
+					$retval = $this->has_permission($blogId, $uid);
 				}
-				elseif($numrows == 0) {
-					$retval = false;
-				}
-				elseif($numrows > 1 || $numrows < 0) {
-					throw new exception(__METHOD__ .": invalid data returned, numrows=(". $numrows .")");
-				}
-				else {
-					throw new exception(__METHOD__ .": unknown result, numrows=(". $numrows .")");
+				catch(Exception $ex) {
+//					throw new exception()
 				}
 			}
 		}
@@ -85,10 +76,35 @@ class csb_permission extends csb_blogAbstract {
 			//they gave invalid data; default to no access.
 			$retval = false;
 		}
+//cs_global::debug_print(__METHOD__ .": REASON::: ". $dbg,1);
 		
 		return($retval);
 		
 	}//end can_access_blog()
+	//-------------------------------------------------------------------------
+	
+	
+	
+	//-------------------------------------------------------------------------
+	public function has_permission($blogId, $uid) {
+
+		$sql = "SELECT * FROM csblog_permission_table WHERE " .
+				"blog_id=:blogId AND uid=:uid";
+
+		$numrows = $this->db->run_query($sql, array('blogId' => $blogId, 'uid' => $uid));
+
+		if ($numrows == 1) {
+			$retval = true;
+		} elseif ($numrows == 0) {
+			$retval = false;
+		} elseif ($numrows > 1 || $numrows < 0) {
+			throw new exception(__METHOD__ . ": invalid data returned, numrows=(" . $numrows . ")");
+		} else {
+			throw new exception(__METHOD__ .": unknown result, numrows=(". $numrows .")");
+		}
+		
+		return $retval;
+	}
 	//-------------------------------------------------------------------------
 	
 	
